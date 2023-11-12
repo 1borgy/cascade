@@ -1,0 +1,27 @@
+# shoutout @wermipls
+name: check + test + format
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+
+      - name: run cargo check
+        run: cargo check
+      - name: run unit tests
+        run: cargo test --all
+      - name: verify code is formatted
+        run: |
+          rustup component add rustfmt --toolchain nightly
+          cargo fmt --all -- --check

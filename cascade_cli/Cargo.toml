@@ -1,0 +1,25 @@
+[package]
+name = "cascade_cli"
+version = "0.1.2"
+edition = "2021"
+build = "build.rs"
+
+[[bin]]
+name = "cascade"
+path = "src/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cascade = { path = "../cascade" }
+cascade_gui = { path = "../cascade_gui" }
+
+anyhow = "1.0.71"
+clap = { version = "4.2.7", features = ["derive", "cargo"] }
+log = "0.4.20"
+thiserror = "1.0.50"
+fern = { version = "0.6.2", features = ["colored"] }
+time = { version = "0.3.30", features = ["local-offset", "formatting"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12"

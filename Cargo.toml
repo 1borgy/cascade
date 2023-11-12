@@ -1,0 +1,3 @@
+[workspace]
+members = ["cascade", "cascade_cli", "cascade_gui"]
+resolver = "2"

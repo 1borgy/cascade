@@ -1,0 +1,23 @@
+[package]
+name = "cascade"
+version = "0.1.2"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.71"
+byteorder = "1.4.3"
+count-write = "0.1.0"
+crc = "3.0.1"
+directories = "5.0.1"
+enum-iterator = "1.4.1"
+filetime = "0.2.21"
+hex-literal = "0.4.1"
+lazy_static = "1.4.0"
+log = "0.4.17"
+serde = { version = "1.0.190", features = ["rc", "derive"] }
+serde_yaml = "0.9.27"
+thiserror = "1.0.50"
+toml = "0.8.6"
+walkdir = "2.3.3"

@@ -1,0 +1,45 @@
+# shoutout @wermipls
+name: build + release
+
+on:
+  push:
+    tags: [ "*.*.*" ]
+
+
+jobs:
+  windows:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: get current project version
+        run: |
+          # Not working
+          # $project_version = cargo metadata --format-version 1 2> $null | jq -r '.packages[] | select(.name == "cascade_cli").version'
+          #
+          # I give up
+          #
+          # This is disgusting - need to assume nothing else in Cargo.toml has
+          # "version = x.x.x" from start of line
+          $project_version = cat .\cascade_cli\Cargo.toml | grep -oE '^version = \"?[0-9]+\.[0-9]+\.[0-9]+\"' | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"
+          "project_version=$project_version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: install nightly rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+
+      - name: cargo build
+        run: cargo build --release
+
+      - name: create release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          # Probably a better way to do this
+          files: ./target/release/cascade.exe

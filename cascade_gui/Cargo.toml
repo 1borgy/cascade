@@ -1,0 +1,18 @@
+[package]
+name = "cascade_gui"
+version = "0.1.2"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cascade = { path = "../cascade" }
+
+log = "0.4.20"
+iced = { version = "0.10.0", default-features = false, features = ["lazy", "image"] }
+iced_aw = { version = "0.7.0", default-features = false, features = ["icons"] }
+enum-iterator = "1.4.1"
+rfd = "0.12.1"
+thiserror = "1.0.50"
+directories = "5.0.1"
+time = { version = "0.3.30", features = ["local-offset"] }
