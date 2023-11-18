@@ -131,7 +131,12 @@ impl PathsComponent {
                             button(text(
                                 target
                                     .get_from_paths(&self.paths)
-                                    .map(|path| format!("{:?}", path))
+                                    .map(|path| path
+                                        .into_os_string()
+                                        .into_string()
+                                        .unwrap_or(
+                                            "<unknown path>".to_string()
+                                        ))
                                     .unwrap_or("not set...".to_string())
                             ))
                             .style(iced::theme::Button::Secondary)
