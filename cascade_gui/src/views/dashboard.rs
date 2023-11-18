@@ -25,7 +25,7 @@ use crate::{
 pub enum DashboardError {
     #[error("saves path is not set!")]
     SavesDirNotSet,
-    #[error("trick source path is not set!")]
+    #[error("trickset path is not set!")]
     TricksetNotSet,
     #[error("backups path is not set!")]
     BackupsDirNotSet,
@@ -41,7 +41,7 @@ pub enum DashboardError {
 
 #[derive(Debug, Clone)]
 pub enum DashboardMessage {
-    SetTrickSource,
+    SetTrickset,
     CopyTrickset,
 }
 
@@ -76,7 +76,7 @@ impl DashboardView {
         let trickset_path = self
             .config
             .paths
-            .trick_source
+            .trickset_path
             .clone()
             .ok_or(DashboardError::TricksetNotSet)?;
 
@@ -113,7 +113,7 @@ impl DashboardView {
         });
 
         let subdir_name = format!(
-            "{:04}-{:02}-{:02}-{:02}-{:02}-{:02}",
+            "{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
             datetime.year(),
             u8::from(datetime.month()),
             datetime.day(),
@@ -168,10 +168,10 @@ impl DashboardView {
             .clone()
             .ok_or(DashboardError::SavesDirNotSet)?;
 
-        let trick_source = self
+        let trickset = self
             .config
             .paths
-            .trick_source
+            .trickset_path
             .clone()
             .ok_or(DashboardError::TricksetNotSet)?;
 
@@ -179,11 +179,8 @@ impl DashboardView {
             DashboardError::Other(format!("error loading saves: {}", err))
         })?;
 
-        let trickset = load_save(&trick_source).map_err(|err| {
-            DashboardError::Other(format!(
-                "error loading trick source: {}",
-                err
-            ))
+        let trickset = load_save(&trickset).map_err(|err| {
+            DashboardError::Other(format!("error loading trickset: {}", err))
         })?;
 
         // TODO: why does this Not Return A Result or something
@@ -222,7 +219,7 @@ impl View for DashboardView {
 
     fn update(&mut self, message: Self::Message) -> Option<DashboardMessage> {
         match message {
-            DashboardMessage::SetTrickSource => match self.set_trickset() {
+            DashboardMessage::SetTrickset => match self.set_trickset() {
                 Err(err) => self.status_text = err.to_string(),
                 Ok(_) => (),
             },
@@ -259,7 +256,7 @@ impl View for DashboardView {
             row![
                 button(text("set trickset").size(22))
                     .padding([10, 10])
-                    .on_press(DashboardMessage::SetTrickSource),
+                    .on_press(DashboardMessage::SetTrickset),
                 button(text("copy trickset to saves").size(22))
                     .padding([10, 10])
                     .on_press(DashboardMessage::CopyTrickset)

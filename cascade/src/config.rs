@@ -12,9 +12,9 @@ use crate::files;
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("no home directory was found")]
-    NoHomeDirectory,
-    #[error("no thugpro saves folder was found")]
-    NoThugproSaves,
+    NoHomeDir,
+    #[error("no thugpro saves directory was found")]
+    NoThugProSavesDir,
     #[error("yaml serde operation failed")]
     YamlSerde {
         #[from]
@@ -54,7 +54,7 @@ pub fn get_thugpro_dir() -> Result<PathBuf, ConfigError> {
 
             config_dir
         })
-        .ok_or(ConfigError::NoHomeDirectory)
+        .ok_or(ConfigError::NoHomeDir)
 }
 
 pub fn get_cascade_dir() -> Result<PathBuf, ConfigError> {
@@ -77,7 +77,7 @@ fn get_config_path() -> Result<PathBuf, ConfigError> {
     Ok(config_path)
 }
 
-fn get_backup_path() -> Result<PathBuf, ConfigError> {
+fn default_backup_path() -> Result<PathBuf, ConfigError> {
     // %localappdata%/THUG Pro/.cascade/backup/
     let mut backup_path = get_cascade_dir()?;
     backup_path.push("backup");
@@ -89,15 +89,15 @@ fn get_backup_path() -> Result<PathBuf, ConfigError> {
     Ok(backup_path)
 }
 
-fn get_trick_source_path() -> Result<PathBuf, ConfigError> {
-    // %localappdata%/THUG Pro/.cascade/tricksource.SKA
-    let mut trick_source_path = get_cascade_dir()?;
-    trick_source_path.push("tricksource.SKA");
+fn default_trickset_path() -> Result<PathBuf, ConfigError> {
+    // %localappdata%/THUG Pro/.cascade/trickset.SKA
+    let mut trickset_path = get_cascade_dir()?;
+    trickset_path.push("trickset.SKA");
 
-    Ok(trick_source_path)
+    Ok(trickset_path)
 }
 
-fn get_thugpro_saves_dir() -> Result<PathBuf, ConfigError> {
+fn default_thugpro_saves_dir() -> Result<PathBuf, ConfigError> {
     // %localappdata%/THUG Pro/Save/
     let mut saves_dir = get_thugpro_dir()?;
     saves_dir.push("Save");
@@ -105,7 +105,7 @@ fn get_thugpro_saves_dir() -> Result<PathBuf, ConfigError> {
     saves_dir
         .is_dir()
         .then(|| saves_dir)
-        .ok_or(ConfigError::NoThugproSaves)
+        .ok_or(ConfigError::NoThugProSavesDir)
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -164,54 +164,48 @@ impl CascadeConfig {
 pub struct CascadePaths {
     pub saves_dir: Option<PathBuf>,
     pub backup_dir: Option<PathBuf>,
-    pub trick_source: Option<PathBuf>,
+    pub trickset_path: Option<PathBuf>,
 }
 
 impl Default for CascadePaths {
     fn default() -> Self {
-        let saves_folder = match get_thugpro_saves_dir() {
-            Ok(folder) => {
-                log::info!(
-                    "autodetected thug pro saves folder at {:?}",
-                    folder
-                );
-                Some(folder)
+        let saves_dir = match default_thugpro_saves_dir() {
+            Ok(dir) => {
+                log::info!("autodetected thug pro saves dir at {:?}", dir);
+                Some(dir)
             }
             Err(err) => {
-                log::warn!(
-                    "could not autodetect thug pro saves folder: {}",
-                    err
-                );
+                log::warn!("could not autodetect thug pro saves dir: {}", err);
                 None
             }
         };
 
-        let backup_folder = match get_backup_path() {
-            Ok(folder) => {
-                log::info!("defaulting to backup folder at {:?}", folder);
-                Some(folder)
+        let backup_dir = match default_backup_path() {
+            Ok(dir) => {
+                log::info!("defaulting to backup directory at {:?}", dir);
+                Some(dir)
             }
             Err(err) => {
-                log::warn!("could not use default backup folder: {}", err);
+                log::warn!("could not use default backup dir: {}", err);
                 None
             }
         };
 
-        let trick_source = match get_trick_source_path() {
-            Ok(folder) => {
-                log::info!("defaulting to trick source at {:?}", folder);
-                Some(folder)
+        let trickset_path = match default_trickset_path() {
+            Ok(path) => {
+                log::info!("defaulting to trickset at {:?}", path);
+                Some(path)
             }
             Err(err) => {
-                log::warn!("could not use default trick source path: {}", err);
+                log::warn!("could not use default trickset path: {}", err);
                 None
             }
         };
 
         Self {
-            saves_dir: saves_folder,
-            backup_dir: backup_folder,
-            trick_source,
+            saves_dir,
+            backup_dir,
+            trickset_path,
         }
     }
 }
