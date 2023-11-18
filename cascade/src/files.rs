@@ -50,13 +50,14 @@ pub fn write_save(
     save_file.data.write(&mut writer)?;
     writer.flush()?;
 
+    log::info!("wrote save to {:?}", &filepath);
+
     let original_mod_time =
         filetime::FileTime::from_last_modification_time(&save_file.metadata);
 
     log::info!("setting file modification time to {:?}", original_mod_time);
     filetime::set_file_mtime(&filepath, original_mod_time)?;
 
-    log::info!("wrote save to {:?}", &filepath);
     Ok(())
 }
 
@@ -95,11 +96,11 @@ pub fn load_saves_from_dir(dir: &PathBuf) -> anyhow::Result<Vec<SaveFile>> {
 
             match files::load_save(&filepath) {
                 Ok(save) => {
-                    log::debug!("successfully loaded save {:?}", filepath);
+                    log::info!("successfully loaded save {:?}", filepath);
                     Some(save)
                 }
                 Err(e) => {
-                    log::debug!("error loading save {:?}: {}", filepath, e);
+                    log::warn!("error loading save {:?}: {}", filepath, e);
                     None
                 }
             }

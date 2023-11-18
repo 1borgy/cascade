@@ -108,7 +108,7 @@ impl DashboardView {
             .ok_or(DashboardError::SavesDirNotSet)?;
 
         let datetime = time::OffsetDateTime::now_local().unwrap_or({
-            log::info!("could not get local timezone; using utc");
+            log::warn!("could not get local timezone; using utc");
             time::OffsetDateTime::now_utc()
         });
 
@@ -157,7 +157,7 @@ impl DashboardView {
         Ok(())
     }
 
-    fn copy_trickset(&self) -> Result<(), DashboardError> {
+    fn copy_trickset(&mut self) -> Result<(), DashboardError> {
         self.backup()?;
 
         // TODO: probably could be a method or something
@@ -196,6 +196,12 @@ impl DashboardView {
             ))
         })?;
 
+        self.status_text = format!(
+            "successfully copied trickset to {}/{} saves",
+            copied_saves.len(),
+            saves.len(),
+        );
+
         Ok(())
     }
 }
@@ -222,10 +228,7 @@ impl View for DashboardView {
             },
             DashboardMessage::CopyTrickset => match self.copy_trickset() {
                 Err(err) => self.status_text = err.to_string(),
-                Ok(_) => {
-                    self.status_text =
-                        "successfully copied trickset to all saves".to_string()
-                }
+                Ok(_) => {}
             },
         }
         None

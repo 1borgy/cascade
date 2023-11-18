@@ -132,7 +132,6 @@ impl CascadeConfig {
         let mut writer = files::load_writer(&path)?;
 
         log::info!("writing config to {:?}", path);
-        log::info!("{:?}", self);
 
         let contents = toml::to_string(&self)?;
         write!(writer, "{}", contents)?;
@@ -179,7 +178,7 @@ impl Default for CascadePaths {
                 Some(folder)
             }
             Err(err) => {
-                log::info!(
+                log::warn!(
                     "could not autodetect thug pro saves folder: {}",
                     err
                 );
@@ -193,7 +192,7 @@ impl Default for CascadePaths {
                 Some(folder)
             }
             Err(err) => {
-                log::info!("could not use default backup folder: {}", err);
+                log::warn!("could not use default backup folder: {}", err);
                 None
             }
         };
@@ -204,7 +203,7 @@ impl Default for CascadePaths {
                 Some(folder)
             }
             Err(err) => {
-                log::info!("could not use default trick source path: {}", err);
+                log::warn!("could not use default trick source path: {}", err);
                 None
             }
         };

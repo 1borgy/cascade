@@ -7,7 +7,7 @@ use std::{
 };
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use thiserror::Error;
 
 use crate::lookup::{
@@ -94,12 +94,23 @@ impl TryFrom<u8> for Type {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Deserialize)]
 pub enum NameChecksum {
     None,
     Inline(u32),
     Compressed8(u8),
     Compressed16(u16),
+}
+
+impl Serialize for NameChecksum {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(
+            self.resolve().unwrap_or(format!("{:?}", self)).as_str(),
+        )
+    }
 }
 
 impl Debug for NameChecksum {
@@ -508,10 +519,16 @@ impl Structure {
         other: &Structure,
         names: &[&str],
     ) -> Result<Rc<Structure>, SymbolError> {
-        Ok(self.with_replaced_nested_symbol(
+        match self.with_replaced_nested_symbol(
             &names,
             other.try_get_nested_symbol(&names)?,
-        )?)
+        ) {
+            Ok(structure) => Ok(structure),
+            Err(err) => {
+                log::error!("could not find path {:?}: {}", names, err);
+                Err(err)
+            }
+        }
     }
 
     pub fn from_reader<R: Read>(
