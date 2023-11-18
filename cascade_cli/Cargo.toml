@@ -20,6 +20,7 @@ log = "0.4.20"
 thiserror = "1.0.50"
 fern = { version = "0.6.2", features = ["colored"] }
 time = { version = "0.3.30", features = ["local-offset", "formatting"] }
+serde_yaml = "0.9.27"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"

@@ -70,7 +70,6 @@ impl View for ConfigView {
             ConfigMessage::Paths(message) => {
                 self.paths.update(message).map(|message| match message {
                     PathsMessage::PathsChanged(paths) => {
-                        log::info!("mod: changing paths");
                         self.config.paths = paths;
                         ConfigMessage::ConfigChanged(self.config.clone())
                     }
@@ -81,7 +80,6 @@ impl View for ConfigView {
             ConfigMessage::Theme(message) => {
                 self.theme.update(message).map(|message| match message {
                     ThemeMessage::ThemeChanged(theme) => {
-                        log::info!("mod: changing theme");
                         self.config.theme = theme;
                         ConfigMessage::ConfigChanged(self.config.clone())
                     }
