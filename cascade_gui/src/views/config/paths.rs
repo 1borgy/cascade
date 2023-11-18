@@ -14,7 +14,7 @@ use crate::resources;
 
 #[derive(Debug, Clone)]
 enum FileDialogType {
-    Folder,
+    Directory,
     File(String),
 }
 
@@ -22,7 +22,7 @@ enum FileDialogType {
 pub enum FileDialogTarget {
     Saves,
     Backup,
-    TrickSource,
+    Trickset,
 }
 
 impl Display for FileDialogTarget {
@@ -33,7 +33,7 @@ impl Display for FileDialogTarget {
             match self {
                 FileDialogTarget::Saves => "thugpro saves",
                 FileDialogTarget::Backup => "backup",
-                FileDialogTarget::TrickSource => "trickset source",
+                FileDialogTarget::Trickset => "trickset",
             }
         )
     }
@@ -45,7 +45,7 @@ impl FileDialogTarget {
         match self {
             FileDialogTarget::Saves => paths.saves_dir.clone(),
             FileDialogTarget::Backup => paths.backup_dir.clone(),
-            FileDialogTarget::TrickSource => paths.trick_source.clone(),
+            FileDialogTarget::Trickset => paths.trickset_path.clone(),
         }
     }
 
@@ -53,16 +53,16 @@ impl FileDialogTarget {
         match self {
             FileDialogTarget::Saves => paths.saves_dir = Some(path),
             FileDialogTarget::Backup => paths.backup_dir = Some(path),
-            FileDialogTarget::TrickSource => paths.trick_source = Some(path),
+            FileDialogTarget::Trickset => paths.trickset_path = Some(path),
         }
     }
 
     fn dialog_type(&self) -> FileDialogType {
         match self {
             FileDialogTarget::Saves | FileDialogTarget::Backup => {
-                FileDialogType::Folder
+                FileDialogType::Directory
             }
-            FileDialogTarget::TrickSource => {
+            FileDialogTarget::Trickset => {
                 FileDialogType::File("SKA".to_string())
             }
         }
@@ -98,7 +98,7 @@ impl PathsComponent {
                 let dialog = FileDialog::new();
 
                 let selected_path = match target.dialog_type() {
-                    FileDialogType::Folder => dialog.pick_folder(),
+                    FileDialogType::Directory => dialog.pick_folder(),
                     FileDialogType::File(extension) => dialog
                         .add_filter(extension.clone(), &[extension])
                         .pick_file(),
