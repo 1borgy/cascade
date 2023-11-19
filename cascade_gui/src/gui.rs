@@ -112,6 +112,7 @@ impl Cascade {
         iced::Settings {
             window: window::Settings {
                 size: (720, 520),
+                min_size: Some((720, 520)),
                 ..Default::default()
             },
             ..Default::default()

@@ -80,11 +80,16 @@ impl DashboardView {
             .clone()
             .ok_or(DashboardError::TricksetNotSet)?;
 
-        let dialog = FileDialog::new();
+        let dialog =
+            FileDialog::new().add_filter("SKA", &["SKA"]).set_directory(
+                self.config
+                    .paths
+                    .saves_dir
+                    .clone()
+                    .ok_or(DashboardError::SavesDirNotSet)?,
+            );
 
-        if let Some(selected_path) =
-            dialog.add_filter("SKA", &["SKA"]).pick_file()
-        {
+        if let Some(selected_path) = dialog.pick_file() {
             fs::copy(selected_path, trickset_path)?;
             self.status_text = "successfully set trickset".to_string();
         }
