@@ -320,8 +320,9 @@ pub struct CascadeTheme {
 )]
 pub enum CascadeBackground {
     Light,
-    #[default]
     Dark,
+    #[default]
+    System,
 }
 
 impl CascadeBackground {
@@ -329,6 +330,25 @@ impl CascadeBackground {
         match self {
             CascadeBackground::Light => CascadePalette::light(),
             CascadeBackground::Dark => CascadePalette::dark(),
+            CascadeBackground::System => {
+                // autodetect dark/light theme on system
+                let mode = dark_light::detect();
+
+                match mode {
+                    dark_light::Mode::Dark => {
+                        log::info!("autodetected system dark theme");
+                        CascadePalette::dark()
+                    }
+                    dark_light::Mode::Light => {
+                        log::info!("autodetected system light theme");
+                        CascadePalette::light()
+                    }
+                    dark_light::Mode::Default => {
+                        log::warn!("could not autodetect system theme; defaulting to light");
+                        CascadePalette::light()
+                    }
+                }
+            }
         }
     }
 }
@@ -362,6 +382,7 @@ impl Display for CascadeBackground {
             match self {
                 CascadeBackground::Light => "light",
                 CascadeBackground::Dark => "dark",
+                CascadeBackground::System => "system",
             }
         )
     }
