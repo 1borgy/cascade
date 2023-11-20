@@ -51,7 +51,7 @@ up. simply pick which backup you want to use and drag its contents into your
 
 ## why do i get a message saying "SmartScreen prevented an unrecognized app from starting" when trying to run cascade?
 
-this is not a windows defender message - this message basically means that i don't have
+this message basically means that i don't have
 the certificate required to become a "recognized publisher".
 
 these certificates
