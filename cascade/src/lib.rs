@@ -1,8 +1,7 @@
-#![feature(error_generic_member_access)]
-// TODO: make proper interface instead of making everything public
-pub mod config;
+#![feature(error_generic_member_access, try_blocks)]
+pub mod actions;
 mod crc32;
-pub mod files;
 mod lookup;
+pub mod mutations;
 pub mod save;
-pub mod symbol;
+pub mod structure;

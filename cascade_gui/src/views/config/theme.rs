@@ -1,9 +1,10 @@
-use cascade::config::{CascadeBackground, CascadeColor, CascadeTheme};
 use enum_iterator::all;
 use iced::{
     widget::{column, pick_list, row, text},
     Element, Renderer,
 };
+
+use crate::config::{CascadeBackground, CascadeColor, CascadeTheme};
 
 #[derive(Clone, Copy, Debug)]
 pub enum ThemeMessage {

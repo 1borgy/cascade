@@ -1,10 +1,9 @@
 use std::{
     backtrace::Backtrace,
     default::Default,
-    fmt::{Debug, Display},
+    fmt::{self, Debug},
 };
 
-use cascade::config::{CascadeConfig, ConfigError};
 use enum_iterator::{all, Sequence};
 use iced::{
     alignment, font,
@@ -14,7 +13,9 @@ use iced::{
 use thiserror::Error;
 
 use crate::{
-    about, resources,
+    about,
+    config::{CascadeConfig, ConfigError},
+    resources,
     theming::config_to_iced_theme,
     views::{
         config::{ConfigMessage, ConfigView},
@@ -54,7 +55,7 @@ pub enum ViewType {
     Config,
 }
 
-impl Display for ViewType {
+impl fmt::Display for ViewType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

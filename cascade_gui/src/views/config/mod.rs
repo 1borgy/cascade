@@ -1,4 +1,3 @@
-use cascade::config::CascadeConfig;
 use iced::{
     widget::{column, scrollable, text},
     Element, Renderer,
@@ -6,6 +5,7 @@ use iced::{
 
 use self::{paths::PathsComponent, theme::ThemeComponent};
 use crate::{
+    config::CascadeConfig,
     theming::config_to_primary_color,
     views::{
         config::{paths::PathsMessage, theme::ThemeMessage},

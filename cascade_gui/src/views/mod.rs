@@ -1,7 +1,8 @@
 pub mod config;
 pub mod dashboard;
-use cascade::config::CascadeConfig;
 use iced::Element;
+
+use crate::config::CascadeConfig;
 
 pub trait View {
     type Message;

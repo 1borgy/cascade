@@ -19,8 +19,10 @@ jobs:
 
       - name: run cargo check
         run: cargo check
+
       - name: run unit tests
-        run: cargo test --all
+        run: cargo test --all -- --nocapture
+
       - name: verify code is formatted
         run: |
           rustup component add rustfmt --toolchain nightly

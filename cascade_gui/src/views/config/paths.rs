@@ -1,6 +1,5 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt, path::PathBuf};
 
-use cascade::config::{self, CascadePaths};
 use enum_iterator::{all, Sequence};
 use iced::{
     alignment,
@@ -10,7 +9,10 @@ use iced::{
 use iced_aw::Icon;
 use rfd::FileDialog;
 
-use crate::resources;
+use crate::{
+    config::{self, CascadePaths},
+    resources,
+};
 
 #[derive(Debug, Clone)]
 enum FileDialogType {
@@ -25,7 +27,7 @@ pub enum FileDialogTarget {
     Trickset,
 }
 
-impl Display for FileDialogTarget {
+impl fmt::Display for FileDialogTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -40,7 +42,6 @@ impl Display for FileDialogTarget {
 }
 
 impl FileDialogTarget {
-    // TODO: use AsRef<Path> instead of PathBuf?
     fn get_from_paths(&self, paths: &config::CascadePaths) -> Option<PathBuf> {
         match self {
             FileDialogTarget::Saves => paths.saves_dir.clone(),

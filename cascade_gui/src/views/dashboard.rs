@@ -1,12 +1,6 @@
-use std::{backtrace::Backtrace, fs, io};
+use std::{backtrace::Backtrace, io, path::PathBuf};
 
-use cascade::{
-    config::CascadeConfig,
-    files::{
-        load_save, load_saves_from_dir, with_copied_tricksets,
-        write_saves_to_dir,
-    },
-};
+use cascade::actions::{self, ActionError};
 use iced::{
     alignment::{self, Alignment},
     widget::{button, column, row, text},
@@ -17,6 +11,7 @@ use thiserror::Error;
 
 use crate::{
     about,
+    config::CascadeConfig,
     theming::{config_to_primary_color, config_to_subtext_color},
     views::View,
 };
@@ -35,8 +30,12 @@ pub enum DashboardError {
         source: io::Error,
         backtrace: Backtrace,
     },
-    #[error("{0}")]
-    Other(String),
+    #[error("an action error occurred: {source}")]
+    Action {
+        #[from]
+        source: ActionError,
+        backtrace: Backtrace,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -71,14 +70,32 @@ impl DashboardView {
         }
     }
 
-    // TODO: put like All of this somewhere else...
-    fn set_trickset(&mut self) -> Result<(), DashboardError> {
-        let trickset_path = self
-            .config
+    fn backup_dir(&self) -> Result<PathBuf, DashboardError> {
+        self.config
+            .paths
+            .backup_dir
+            .clone()
+            .ok_or(DashboardError::BackupsDirNotSet)
+    }
+
+    fn saves_dir(&self) -> Result<PathBuf, DashboardError> {
+        self.config
+            .paths
+            .saves_dir
+            .clone()
+            .ok_or(DashboardError::SavesDirNotSet)
+    }
+
+    fn trickset_path(&self) -> Result<PathBuf, DashboardError> {
+        self.config
             .paths
             .trickset_path
             .clone()
-            .ok_or(DashboardError::TricksetNotSet)?;
+            .ok_or(DashboardError::TricksetNotSet)
+    }
+
+    fn set_trickset(&mut self) -> Result<(), DashboardError> {
+        let trickset_path = self.trickset_path()?;
 
         let dialog =
             FileDialog::new().add_filter("SKA", &["SKA"]).set_directory(
@@ -90,118 +107,26 @@ impl DashboardView {
             );
 
         if let Some(selected_path) = dialog.pick_file() {
-            fs::copy(selected_path, trickset_path)?;
+            actions::set_trickset(trickset_path, selected_path)?;
             self.status_text = "successfully set trickset".to_string();
         }
 
         Ok(())
     }
 
-    fn backup(&self) -> Result<(), DashboardError> {
-        let backup_dir = self
-            .config
-            .paths
-            .backup_dir
-            .clone()
-            .ok_or(DashboardError::BackupsDirNotSet)?;
-
-        let saves_dir = self
-            .config
-            .paths
-            .saves_dir
-            .clone()
-            .ok_or(DashboardError::SavesDirNotSet)?;
-
-        let datetime = time::OffsetDateTime::now_local().unwrap_or({
-            log::warn!("could not get local timezone; using utc");
-            time::OffsetDateTime::now_utc()
-        });
-
-        let subdir_name = format!(
-            "{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
-            datetime.year(),
-            u8::from(datetime.month()),
-            datetime.day(),
-            datetime.hour(),
-            datetime.minute(),
-            datetime.second()
-        );
-
-        let mut subdir = backup_dir.clone();
-        subdir.push(subdir_name);
-
-        fs::create_dir_all(&subdir)?;
-
-        for file in fs::read_dir(saves_dir)? {
-            // why him so confused ??
-            let file = file?;
-            let file_path = file.path();
-
-            if file.file_type()?.is_file() {
-                if let Some(extension) = file.path().extension() {
-                    if extension == "SKA" {
-                        // holy shit let it stop im so sorry
-                        // just use .filter() or something u moron
-                        if let Some(file_name) = file_path.file_name() {
-                            let mut backup_file_path = subdir.clone();
-                            backup_file_path.push(file_name);
-
-                            log::info!(
-                                "backing up {:?} to {:?}",
-                                file_path,
-                                backup_file_path
-                            );
-
-                            fs::copy(file_path, backup_file_path)?;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     fn copy_trickset(&mut self) -> Result<(), DashboardError> {
-        self.backup()?;
+        let saves_dir = self.saves_dir()?;
+        let backup_dir = self.backup_dir()?;
+        let trickset_path = self.trickset_path()?;
 
-        // TODO: probably could be a method or something
-        let saves_dir = self
-            .config
-            .paths
-            .saves_dir
-            .clone()
-            .ok_or(DashboardError::SavesDirNotSet)?;
+        let (num_successful_saves, num_all_saves) =
+            actions::copy_trickset(trickset_path, backup_dir, saves_dir)?;
 
-        let trickset = self
-            .config
-            .paths
-            .trickset_path
-            .clone()
-            .ok_or(DashboardError::TricksetNotSet)?;
-
-        let saves = load_saves_from_dir(&saves_dir).map_err(|err| {
-            DashboardError::Other(format!("error loading saves: {}", err))
-        })?;
-
-        let trickset = load_save(&trickset).map_err(|err| {
-            DashboardError::Other(format!("error loading trickset: {}", err))
-        })?;
-
-        // TODO: why does this Not Return A Result or something
-        let copied_saves = with_copied_tricksets(&saves, &trickset);
-
-        write_saves_to_dir(&copied_saves, &saves_dir).map_err(|err| {
-            DashboardError::Other(format!(
-                "error writing saves to dir: {}",
-                err
-            ))
-        })?;
+        log::info!("return back to dashboard");
 
         self.status_text = format!(
             "successfully copied trickset to {}/{} saves",
-            copied_saves.len(),
-            saves.len(),
+            num_successful_saves, num_all_saves
         );
 
         Ok(())
