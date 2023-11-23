@@ -1,6 +1,6 @@
-use cascade::config::{CascadeTheme, RgbColor};
+use crate::config::{CascadeTheme, RgbColor};
 
-// TODO: config should probably just go in cascade_gui
+// TODO: move this to config
 pub fn config_to_iced_color(config_color: RgbColor) -> iced::Color {
     iced::Color::from_rgb8(
         config_color.red,

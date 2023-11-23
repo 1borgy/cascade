@@ -185,6 +185,9 @@ cascade would not exist without the following people, so shoutout to them:
 
 - **retro** 🦆 for being an early beta tester
 
+- **cdot** 🛹 for releasing his giant cas pack, which i'm using for automated
+  integration testing
+
 - **[@wermipls](https://github.com/wermipls)** 🪱 for helping with github actions
 
 - **[@catppuccin](https://github.com/catppuccin/catppuccin)** 🐈‍⬛ for
