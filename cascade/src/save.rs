@@ -114,11 +114,18 @@ impl SaveData {
         self.data.write(&mut count_writer)?;
 
         let num_bytes_written = count_writer.count() as usize;
-        log::debug!("save file len before padding is {}", num_bytes_written);
 
-        for _ in 0..(SAVE_FILE_SIZE - num_bytes_written) {
-            count_writer.write_u8(PADDING_BYTE)?;
-        }
+        let num_padding_bytes =
+            SAVE_FILE_SIZE.saturating_sub(num_bytes_written);
+
+        log::info!(
+            "wrote {} bytes, padding {} bytes to hit {}",
+            num_bytes_written,
+            num_padding_bytes,
+            SAVE_FILE_SIZE
+        );
+
+        count_writer.write(&vec![PADDING_BYTE; num_padding_bytes])?;
 
         Ok(())
     }
