@@ -206,6 +206,7 @@ impl SaveData {
                 .with_copied_path(&other.data, &trick_binding_path)?
                 .with_copied_path(&other.data, &cat_path)?
                 .with_copied_path(&other.data, &specials_path)?,
-        })
+        }
+        .with_recalculated_header()?)
     }
 }
