@@ -1,8 +1,7 @@
 use std::{
     backtrace::Backtrace,
     fmt::{Debug, Display},
-    io,
-    io::{Read, Write},
+    io::{self, BufRead, Read, Write},
     rc::Rc,
 };
 
@@ -181,7 +180,8 @@ pub enum Value {
     F32(f32),
     ZeroInt,
     ZeroFloat,
-    String(String),
+    // TODO: Idk what encoding this is so just storing as vec of bytes
+    String(Vec<u8>),
     Pair(f32, f32),
     Vector(f32, f32, f32),
     Structure(Rc<Structure>),
@@ -196,7 +196,7 @@ impl Display for Value {
 }
 
 impl Value {
-    fn from_reader<R: Read>(
+    fn from_reader<R: BufRead>(
         reader: &mut R,
         symbol_type: Type,
     ) -> Result<Value, SymbolError> {
@@ -205,21 +205,23 @@ impl Value {
             Type::Integer => Value::I32(reader.read_i32::<LittleEndian>()?),
             Type::Float => Value::F32(reader.read_f32::<LittleEndian>()?),
             Type::String | Type::LocalString => {
-                let mut value = String::new();
+                let mut bytes = vec![];
 
                 while {
                     // do:
-                    let character = reader.read_u8()? as char;
-                    let is_null = character == '\0';
-
-                    if !is_null {
-                        value.push(character);
-                    }
+                    // Read character
+                    let byte = reader.read_u8()?;
 
                     // while:
-                    !is_null
+                    if byte != 0 {
+                        bytes.push(byte);
+                        true
+                    } else {
+                        false
+                    }
                 } {}
-                Value::String(value)
+
+                Value::String(bytes)
             }
             // https://doc.rust-lang.org/reference/expressions.html#evaluation-order-of-operands
             Type::Pair => Value::Pair(
@@ -271,7 +273,7 @@ impl Value {
             Value::I32(val) => writer.write_i32::<LittleEndian>(*val)?,
             Value::F32(val) => writer.write_f32::<LittleEndian>(*val)?,
             Value::String(val) => {
-                writer.write_all(val.as_bytes())?;
+                writer.write_all(val)?;
                 // null terminator
                 writer.write_u8(0)?;
             }
@@ -308,7 +310,9 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    pub fn from_reader<R: Read>(reader: &mut R) -> Result<Self, SymbolError> {
+    pub fn from_reader<R: BufRead>(
+        reader: &mut R,
+    ) -> Result<Self, SymbolError> {
         let type_byte = reader.read_u8()?;
 
         // 8-bit / 16-bit mask in bits 6/7
@@ -531,7 +535,7 @@ impl Structure {
         }
     }
 
-    pub fn from_reader<R: Read>(
+    pub fn from_reader<R: BufRead>(
         reader: &mut R,
     ) -> Result<Structure, SymbolError> {
         let mut symbols = vec![];
