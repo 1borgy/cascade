@@ -1,6 +1,6 @@
 use std::{
     backtrace::Backtrace,
-    io::{self, Read, Write},
+    io::{self, BufRead, Read, Write},
     mem::size_of,
     rc::Rc,
 };
@@ -98,7 +98,7 @@ pub struct SaveData {
 }
 
 impl SaveData {
-    pub fn from_reader<R: Read>(reader: &mut R) -> Result<Self, SaveError> {
+    pub fn from_reader<R: BufRead>(reader: &mut R) -> Result<Self, SaveError> {
         Ok(SaveData {
             header: Header::from_reader(reader)?,
             summary: Rc::new(Structure::from_reader(reader)?),
@@ -164,33 +164,6 @@ impl SaveData {
             },
             summary: self.summary.clone(),
             data: self.data.clone(),
-        })
-    }
-
-    pub fn name(&self) -> Result<String, SaveError> {
-        let symbol = self.summary.try_get("Filename")?;
-
-        match &symbol.value {
-            symbol::Value::String(str) => Ok(str.clone()),
-            other => Err(SaveError::InvalidName(other.clone())),
-        }
-    }
-
-    pub fn with_name(&self, name: &str) -> Result<SaveData, SaveError> {
-        let cas_filename_path =
-            ["CustomSkater", "custom", "info", "CASFileName"];
-
-        Ok(SaveData {
-            header: self.header.invalidate(),
-            summary: self.summary.with_replaced_symbol(
-                "Filename",
-                Rc::new(
-                    self.summary
-                        .try_get("Filename")?
-                        .with_value(symbol::Value::String(name.to_string())),
-                ),
-            )?,
-            data: self.data.with_copied_path(&self.data, &cas_filename_path)?,
         })
     }
 
