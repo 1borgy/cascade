@@ -108,7 +108,7 @@ impl SaveContent {
             SAVE_FILE_SIZE
         );
 
-        count_writer.write(&vec![PADDING_BYTE; num_padding_bytes])?;
+        count_writer.write_all(&vec![PADDING_BYTE; num_padding_bytes])?;
 
         Ok(())
     }
@@ -170,3 +170,4 @@ impl SaveContent {
         }
     }
 }
+

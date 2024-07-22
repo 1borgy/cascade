@@ -8,6 +8,7 @@ use gui::Cascade;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 mod about;
+mod actions;
 mod config;
 pub mod error;
 mod gui;
@@ -20,8 +21,8 @@ mod views;
 pub fn run() -> Result<(), CascadeGuiError> {
     let colors = ColoredLevelConfig::new().info(Color::Green);
 
-    let mut log_path =
-        paths::get_cascade_dir().unwrap_or(PathBuf::from(env::current_dir()?));
+    let mut log_path = paths::detect_cascade_dir()
+        .unwrap_or(PathBuf::from(env::current_dir()?));
 
     log_path.push("cascade.log");
 

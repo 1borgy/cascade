@@ -19,7 +19,7 @@ use crate::{
     theming::config_to_iced_theme,
     views::{
         config::{ConfigMessage, ConfigView},
-        dashboard::{DashboardMessage, DashboardView},
+        dashboard::{Dashboard, DashboardMessage},
         View,
     },
 };
@@ -71,7 +71,7 @@ impl fmt::Display for ViewType {
 struct ViewManager {
     current_view: ViewType,
 
-    dashboard: DashboardView,
+    dashboard: Dashboard,
     config: ConfigView,
 }
 
@@ -80,7 +80,7 @@ impl ViewManager {
         ViewManager {
             current_view: Default::default(),
 
-            dashboard: DashboardView::new(config.clone()),
+            dashboard: Dashboard::new(config.clone()),
             config: ConfigView::new(config.clone()),
         }
     }

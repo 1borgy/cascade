@@ -115,7 +115,7 @@ impl View for ConfigView {
         .into();
 
         let component: Element<_> =
-            scrollable(column![paths, theme].padding([20, 50]).spacing(20))
+            scrollable(column![paths, theme].padding([20, 50]).spacing(30))
                 .into();
 
         component

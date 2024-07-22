@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::{
     about,
-    config::CascadeConfig,
+    config::{CascadeConfig, ConfigError},
     theming::{config_to_primary_color, config_to_subtext_color},
     views::View,
 };
@@ -20,10 +20,6 @@ use crate::{
 pub enum DashboardError {
     #[error("saves path is not set!")]
     SavesDirNotSet,
-    #[error("trickset path is not set!")]
-    TricksetNotSet,
-    #[error("backups path is not set!")]
-    BackupsDirNotSet,
     #[error("an io error occurred: {source}")]
     Io {
         #[from]
@@ -36,16 +32,31 @@ pub enum DashboardError {
         source: ActionError,
         backtrace: Backtrace,
     },
+    #[error("a config error occurred: {source}")]
+    Config {
+        #[from]
+        source: ConfigError,
+        backtrace: Backtrace,
+    },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum DashboardMessage {
     SetTrickset,
     CopyTrickset,
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+enum DashboardState {
+    #[default]
+    Idle,
+    Copying,
+}
+
 #[derive(Debug, Clone)]
-pub struct DashboardView {
+pub struct Dashboard {
+    state: DashboardState,
+
     config: CascadeConfig,
 
     status_text: String,
@@ -54,7 +65,7 @@ pub struct DashboardView {
     subtext_color: iced::Color,
 }
 
-impl DashboardView {
+impl Dashboard {
     pub fn new(config: CascadeConfig) -> Self {
         // TODO: code reuse
         let primary_color = config_to_primary_color(&config.theme);
@@ -64,6 +75,7 @@ impl DashboardView {
 
         Self {
             config,
+            state: DashboardState::default(),
             primary_color,
             subtext_color,
             status_text,
@@ -71,27 +83,18 @@ impl DashboardView {
     }
 
     fn backup_dir(&self) -> Result<PathBuf, DashboardError> {
-        self.config
-            .paths
-            .backup_dir
-            .clone()
-            .ok_or(DashboardError::BackupsDirNotSet)
+        Ok(self.config.paths.backup_dir()?)
     }
 
     fn saves_dir(&self) -> Result<PathBuf, DashboardError> {
         self.config
             .paths
-            .saves_dir
-            .clone()
+            .saves_dir()
             .ok_or(DashboardError::SavesDirNotSet)
     }
 
     fn trickset_path(&self) -> Result<PathBuf, DashboardError> {
-        self.config
-            .paths
-            .trickset_path
-            .clone()
-            .ok_or(DashboardError::TricksetNotSet)
+        Ok(self.config.paths.trickset_path()?)
     }
 
     fn set_trickset(&mut self) -> Result<(), DashboardError> {
@@ -101,8 +104,7 @@ impl DashboardView {
             FileDialog::new().add_filter("SKA", &["SKA"]).set_directory(
                 self.config
                     .paths
-                    .saves_dir
-                    .clone()
+                    .saves_dir()
                     .ok_or(DashboardError::SavesDirNotSet)?,
             );
 
@@ -133,7 +135,7 @@ impl DashboardView {
     }
 }
 
-impl View for DashboardView {
+impl View for Dashboard {
     type Message = DashboardMessage;
 
     fn title(&self) -> String {

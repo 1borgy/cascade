@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 #![feature(error_generic_member_access)]
 
 use clap::{Parser, Subcommand};

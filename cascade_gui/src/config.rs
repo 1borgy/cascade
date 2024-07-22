@@ -97,9 +97,9 @@ impl CascadeConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CascadePaths {
-    pub saves_dir: Option<PathBuf>,
-    pub backup_dir: Option<PathBuf>,
-    pub trickset_path: Option<PathBuf>,
+    saves_dir: Option<PathBuf>,
+    backup_dir: Option<PathBuf>,
+    trickset_path: Option<PathBuf>,
 }
 
 impl Default for CascadePaths {
@@ -115,33 +115,37 @@ impl Default for CascadePaths {
             }
         };
 
-        let backup_dir = match paths::default_backup_path() {
-            Ok(dir) => {
-                log::info!("defaulting to backup directory at {:?}", dir);
-                Some(dir)
-            }
-            Err(err) => {
-                log::warn!("could not use default backup dir: {}", err);
-                None
-            }
-        };
-
-        let trickset_path = match paths::default_trickset_path() {
-            Ok(path) => {
-                log::info!("defaulting to trickset at {:?}", path);
-                Some(path)
-            }
-            Err(err) => {
-                log::warn!("could not use default trickset path: {}", err);
-                None
-            }
-        };
-
+        // Default backup/trickset path to None and just pull them at runtime, so
+        // people can change cascade dir without having to change these paths
         Self {
             saves_dir,
-            backup_dir,
-            trickset_path,
+            backup_dir: None,
+            trickset_path: None,
         }
+    }
+}
+
+impl CascadePaths {
+    pub fn saves_dir(&self) -> Option<PathBuf> {
+        self.saves_dir.clone()
+    }
+
+    pub fn backup_dir(&self) -> Result<PathBuf, ConfigError> {
+        Ok(self
+            .backup_dir
+            .clone()
+            .unwrap_or(paths::default_backup_path()?))
+    }
+
+    pub fn trickset_path(&self) -> Result<PathBuf, ConfigError> {
+        Ok(self
+            .trickset_path
+            .clone()
+            .unwrap_or(paths::default_trickset_path()?))
+    }
+
+    pub fn set_saves_dir(&mut self, dir: PathBuf) {
+        self.saves_dir = Some(dir)
     }
 }
 
