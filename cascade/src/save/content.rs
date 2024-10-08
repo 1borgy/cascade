@@ -1,21 +1,19 @@
 use std::{
-    io::{BufRead, Write},
+    io::{Read, Write},
     mem::size_of,
-    sync::Arc,
 };
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use count_write::CountWrite;
 use serde::{Deserialize, Serialize};
 
-use super::SaveError;
-use crate::{crc32::get_checksum_for_bytes, structure::Structure};
+use crate::{crc32, qb, save::Result};
 
 const SAVE_FILE_SIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Header {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Header {
     pub checksum: u32,
     pub summary_checksum: u32,
     pub summary_size: i32,
@@ -24,7 +22,7 @@ struct Header {
 }
 
 impl Header {
-    pub fn from_reader<R: BufRead>(stream: &mut R) -> Result<Self, SaveError> {
+    pub fn read(stream: &mut impl Read) -> Result<Self> {
         let checksum = stream.read_u32::<LittleEndian>()?;
         let summary_checksum = stream.read_u32::<LittleEndian>()?;
         let summary_size = stream.read_i32::<LittleEndian>()?;
@@ -40,7 +38,7 @@ impl Header {
         })
     }
 
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), SaveError> {
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         writer.write_u32::<LittleEndian>(self.checksum)?;
         writer.write_u32::<LittleEndian>(self.summary_checksum)?;
         writer.write_i32::<LittleEndian>(self.summary_size)?;
@@ -49,44 +47,32 @@ impl Header {
         Ok(())
     }
 
-    pub fn raw_bytes(&self) -> Result<Vec<u8>, SaveError> {
+    pub fn raw_bytes(&self) -> Result<Vec<u8>> {
         let mut bytes = vec![];
         self.write(&mut bytes)?;
 
         Ok(bytes)
     }
-
-    pub fn invalidate(&self) -> Header {
-        Header {
-            checksum: 0,
-            summary_checksum: 0,
-            summary_size: 0,
-            total_size: 0,
-            version: self.version,
-        }
-    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SaveContent {
-    // Header is invalid as soon as we make a mutation
-    // TODO: remove, just keep version
-    header: Header,
+#[derive(Debug, Clone, Serialize)]
+pub struct Content {
+    pub header: Header,
 
-    pub summary: Arc<Structure>,
-    pub data: Arc<Structure>,
+    pub summary: Box<qb::Structure>,
+    pub data: Box<qb::Structure>,
 }
 
-impl SaveContent {
-    pub fn from_reader<R: BufRead>(reader: &mut R) -> Result<Self, SaveError> {
-        Ok(SaveContent {
-            header: Header::from_reader(reader)?,
-            summary: Arc::new(Structure::from_reader(reader)?),
-            data: Arc::new(Structure::from_reader(reader)?),
+impl Content {
+    pub fn read(reader: &mut impl Read) -> Result<Self> {
+        Ok(Content {
+            header: Header::read(reader)?,
+            summary: Box::new(qb::Structure::read(reader)?),
+            data: Box::new(qb::Structure::read(reader)?),
         })
     }
 
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), SaveError> {
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
         let mut count_writer = CountWrite::from(writer);
 
         // TODO fix this
@@ -113,21 +99,22 @@ impl SaveContent {
         Ok(())
     }
 
-    fn calculate_header(&self) -> Result<Header, SaveError> {
+    fn calculate_header(&self) -> Result<Header> {
         let mut summary_bytes = self.summary.raw_bytes()?;
         let mut data_bytes = self.data.raw_bytes()?;
 
-        let summary_checksum = get_checksum_for_bytes(&summary_bytes);
+        let summary_checksum = crc32::checksum(&summary_bytes);
         let summary_size = summary_bytes.len() as i32;
         let data_size = data_bytes.len() as i32;
         let total_size = size_of::<Header>() as i32 + summary_size + data_size;
+        let version = self.header.version;
 
         let header_zero_checksum = Header {
             checksum: 0,
             summary_checksum,
             summary_size,
             total_size,
-            version: self.header.version,
+            version,
         };
 
         let mut all_bytes = vec![];
@@ -135,37 +122,29 @@ impl SaveContent {
         all_bytes.append(&mut summary_bytes);
         all_bytes.append(&mut data_bytes);
 
-        let checksum = get_checksum_for_bytes(&all_bytes);
+        let checksum = crc32::checksum(&all_bytes);
 
         Ok(Header {
             checksum,
             summary_checksum,
             summary_size,
             total_size,
-            version: self.header.version,
+            version,
         })
     }
 
-    pub fn summary(&self) -> Arc<Structure> {
-        Arc::clone(&self.summary)
-    }
-
-    pub fn data(&self) -> Arc<Structure> {
-        Arc::clone(&self.data)
-    }
-
-    pub fn with_summary(&self, summary: Arc<Structure>) -> Self {
+    pub fn with_summary(&self, summary: Box<qb::Structure>) -> Self {
         Self {
-            header: self.header.invalidate(),
+            header: self.header.clone(),
             summary,
-            data: Arc::clone(&self.data),
+            data: Box::clone(&self.data),
         }
     }
 
-    pub fn with_data(&self, data: Arc<Structure>) -> Self {
+    pub fn with_data(&self, data: Box<qb::Structure>) -> Self {
         Self {
-            header: self.header.invalidate(),
-            summary: Arc::clone(&self.summary),
+            header: self.header.clone(),
+            summary: Box::clone(&self.summary),
             data,
         }
     }

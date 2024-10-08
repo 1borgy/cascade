@@ -26,7 +26,7 @@ jobs:
           #
           # This is disgusting - need to assume nothing else in Cargo.toml has
           # "version = x.x.x" from start of line
-          $project_version = cat .\cascade_cli\Cargo.toml | grep -oE '^version = \"?[0-9]+\.[0-9]+\.[0-9]+\"' | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"
+          $project_version = cat .\cascade_app\Cargo.toml | grep -oE '^version = \"?[0-9]+\.[0-9]+\.[0-9]+\"' | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"
           "project_version=$project_version" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: install nightly rust toolchain

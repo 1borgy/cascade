@@ -1,20 +1,16 @@
 [package]
 name = "cascade"
-version = "0.2.0"
+version = "0.3.0-rc.1"
 edition = "2021"
 
 [dependencies]
 byteorder = "1.4.3"
 count-write = "0.1.0"
 crc = "3.0.1"
-directories = "5.0.1"
 filetime = "0.2.21"
-lazy_static = "1.4.0"
+indexmap = "2.5.0"
 log = "0.4.17"
-rayon = "1.8.0"
+ron = "0.8.1"
 serde = { version = "1.0.190", features = ["rc", "derive"] }
-serde_yaml = "0.9.27"
 thiserror = "1.0.50"
-time = "0.3.30"
 toml = "0.8.6"
-walkdir = "2.3.3"

@@ -4,12 +4,11 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use cascade::save::SaveFile;
-use rayon::prelude::ParallelIterator;
+use cascade::save::Entry;
 
 mod common;
 
-fn read_save_file_bytes(save: &SaveFile) -> Vec<u8> {
+fn read_save_file_bytes(save: &Entry) -> Vec<u8> {
     let filepath = save.filepath();
     let mut file =
         fs::File::open(&filepath).expect("could not open file for reading");
@@ -20,7 +19,7 @@ fn read_save_file_bytes(save: &SaveFile) -> Vec<u8> {
     bytes
 }
 
-fn diff_save_files(input_save: &SaveFile, output_save: &SaveFile) -> bool {
+fn diff_save_files(input_save: &Entry, output_save: &Entry) -> bool {
     let input_bytes = read_save_file_bytes(&input_save);
     let output_bytes = read_save_file_bytes(&output_save);
 
@@ -56,8 +55,8 @@ fn diff_save_files(input_save: &SaveFile, output_save: &SaveFile) -> bool {
 }
 
 fn round_trip_save_file(
-    input_save_file: &SaveFile,
-    output_save_file: &SaveFile,
+    input_save_file: &Entry,
+    output_save_file: &Entry,
 ) -> bool {
     let input_save_content = input_save_file
         .load_content()
@@ -72,19 +71,18 @@ fn round_trip_save_file(
 
 #[test]
 fn round_trip() {
-    let collection = common::save_collection();
+    let entries = common::entries();
     let output_dir = common::output_dir();
 
     let all_passed = AtomicBool::new(true);
 
-    collection.par_iter().for_each(|input_save_file| {
-        let output_save_file = input_save_file.with_dir(&output_dir);
+    for entry in entries {
+        let output_entry = entry.with_dir(&output_dir);
 
-        let file_passed =
-            round_trip_save_file(&input_save_file, &output_save_file);
+        let file_passed = round_trip_save_file(&entry, &output_entry);
 
         all_passed.fetch_and(file_passed, Ordering::SeqCst);
-    });
+    }
 
     assert!(all_passed.load(Ordering::SeqCst))
 }
