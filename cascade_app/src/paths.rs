@@ -99,8 +99,7 @@ pub fn cascade_dir() -> Result<PathBuf> {
     }
 }
 
-#[expect(dead_code)]
-pub fn backups_dir(cascade_dir: impl AsRef<Path>) -> PathBuf {
+pub fn backup_dir(cascade_dir: impl AsRef<Path>) -> PathBuf {
     // %localappdata%/cascade/backup/
     cascade_dir.as_ref().join("backup")
 }

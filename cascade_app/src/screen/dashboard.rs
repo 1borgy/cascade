@@ -17,6 +17,7 @@ use iced::{
     Alignment, Element, Length, Task,
 };
 use rfd::AsyncFileDialog;
+use tokio::fs;
 
 use crate::{
     config::{Format, Selections},
@@ -100,6 +101,7 @@ pub enum Event {
 pub struct Dashboard {
     source_path: PathBuf,
     source_dump_path: PathBuf,
+    backup_dir: PathBuf,
 
     source: Option<Arc<cas::Cas>>,
 
@@ -117,6 +119,7 @@ impl Dashboard {
     pub fn new(
         cascade_dir: impl AsRef<Path>,
         saves_dir: Option<PathBuf>,
+        backup_dir: PathBuf,
         default_selection: bool,
         selections: Selections,
     ) -> (Self, Task<Message>) {
@@ -129,6 +132,7 @@ impl Dashboard {
             Dashboard {
                 source_path: source_path.clone(),
                 source_dump_path,
+                backup_dir,
                 source: None,
                 saves_dir: saves_dir.clone(),
                 entries: BTreeMap::new(),
@@ -172,6 +176,7 @@ impl Dashboard {
         )
     }
 
+    #[expect(dead_code)]
     pub fn set_default_selection(&mut self, default_selection: bool) {
         self.default_selection = default_selection;
     }
@@ -261,7 +266,6 @@ impl Dashboard {
             }
 
             Message::LoadedLut(Ok(lut)) => {
-                self.set_warning(format!("loaded lut: {:?}", lut));
                 self.lut = Some(lut);
                 (Task::none(), None)
             }
@@ -295,6 +299,7 @@ impl Dashboard {
                 Some(source) => (
                     Task::perform(
                         go(
+                            self.backup_dir.clone(),
                             self.entries
                                 .values()
                                 .filter_map(|entry| {
@@ -349,15 +354,15 @@ impl Dashboard {
                 .get(qb::Id::Compressed8(220))
                 .map(|symbol| match &symbol.value {
                     qb::Value::U8(1) => "male",
-                    qb::Value::U8(0) => "female",
+                    qb::Value::ZeroInt => "female",
                     _ => "???",
                 })
                 .unwrap_or("???");
 
             Column::new()
-                .push(text(format!("filename: {}", filename)))
-                .push(text(format!("gender: {}", gender)))
-                .push(text(format!("todo: idk more fields")))
+                .push(text(format!("filename: {}", filename)).size(12))
+                .push(text(format!("gender: {}", gender)).size(12))
+                .push(text(format!("\ntodo: idk add more fields here")).size(12))
                 .into()
         } else {
             text("no source loaded").into()
@@ -414,7 +419,7 @@ impl Dashboard {
             .push(heading("source"))
             .push(button("set source cas").on_press(Message::PickSource))
             .push(self.view_source_info())
-    }
+   }
 
     fn view_center(&self) -> Column<Message> {
         Column::new()
@@ -567,11 +572,50 @@ fn make_transform(source: &cas::Cas, flags: Flags) -> cas::Cas {
     }
 }
 
+async fn backup<P: AsRef<Path>>(
+    backup_dir: P,
+    entries: &Vec<save::Entry>,
+) -> Result<()> {
+    let backup_dir = backup_dir.as_ref();
+
+    let datetime = time::OffsetDateTime::now_local().unwrap_or({
+        log::warn!("could not get local timezone; using utc");
+        time::OffsetDateTime::now_utc()
+    });
+
+    let subdir_name = format!(
+        "{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
+        datetime.year(),
+        u8::from(datetime.month()),
+        datetime.day(),
+        datetime.hour(),
+        datetime.minute(),
+        datetime.second()
+    );
+
+    let mut subdir = PathBuf::from(backup_dir);
+    subdir.push(subdir_name);
+
+    fs::create_dir_all(&subdir).await?;
+
+    for entry in entries.into_iter() {
+        let backup_path = subdir.join(entry.filename());
+        fs::copy(entry.filepath(), backup_path).await?;
+    }
+
+    Ok(())
+}
+
 async fn go(
-    entries: impl IntoIterator<Item = save::Entry>,
+    backup_dir: impl AsRef<Path>,
+    entries: impl IntoIterator<Item = save::Entry> + Clone,
     source: Arc<cas::Cas>,
     flags: Flags,
 ) -> Result<()> {
+    let entries = entries.into_iter().collect::<Vec<_>>();
+
+    backup(backup_dir, &entries).await?;
+
     let transform = Arc::new(make_transform(source.as_ref(), flags));
     let transform_path = paths::transform_dump(paths::cascade_dir()?);
 
@@ -605,27 +649,28 @@ async fn process_entry(
     transform: Arc<cas::Cas>,
 ) -> Result<()> {
     let mut content = entry.load_content()?;
-    let entry_cas = cas::Cas::try_from(content.clone())?;
 
-    tasks::write_serializable(
-        &entry_cas,
-        entry.filepath().with_added_extension("ron"),
-        Format::Ron,
-    )
-    .await?;
+    // let entry_cas = cas::Cas::try_from(content.clone())?;
+    // tasks::write_serializable(
+    //     &entry_cas,
+    //     entry.filepath().with_added_extension("ron"),
+    //     Format::Ron,
+    // )
+    // .await?;
 
     transform.modify(&mut content)?;
 
-    let out_entry = entry.with_name(format!("{}.out", entry.name));
-    out_entry.write_content(&content)?;
+    entry.write_content(&content)?;
+    entry.overwrite_metadata()?;
 
-    let out_entry_cas = cas::Cas::try_from(content.clone())?;
-    tasks::write_serializable(
-        &out_entry_cas,
-        out_entry.filepath().with_added_extension("ron"),
-        Format::Ron,
-    )
-    .await?;
+    // let out_entry = entry.with_name(format!("{}.out", entry.name));
+    // let out_entry_cas = cas::Cas::try_from(content.clone())?;
+    // tasks::write_serializable(
+    //     &out_entry_cas,
+    //     out_entry.filepath().with_added_extension("ron"),
+    //     Format::Ron,
+    // )
+    // .await?;
 
     Ok(())
 }

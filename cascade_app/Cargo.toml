@@ -15,6 +15,7 @@ directories = "5.0.1"
 enum-iterator = "1.4.1"
 fern = { version = "0.6.2", features = ["colored"] }
 hex-literal = "0.4.1"
+image = "0.24.0"
 log = "0.4.20"
 rfd = "0.12.1"
 ron = "0.8.1"
@@ -26,16 +27,8 @@ toml = "0.8.8"
 
 [dependencies.iced]
 version = "0.13.0"
-# git = "https://github.com/iced-rs/iced.git"
-# rev = "0dcec519be23da6d3bc409dbf7ac65407d59dc12"
-# version = "0.13.0-dev"
 default-features = false
 features = ["tokio", "lazy", "advanced", "image", "debug", "wgpu"]
 
-# [dependencies.iced_aw]
-# version = "0.9.0"
-# git = "https://github.com/iced-rs/iced_aw.git"
-# rev = "0f616fe3a74b1587b94e9fb49a29c52bb93ef01c"
-# version = "0.13.0-dev"
-# default-features = false
-# features = ["icons", "tab_bar"]
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12"

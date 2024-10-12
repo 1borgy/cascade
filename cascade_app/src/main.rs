@@ -1,3 +1,4 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![feature(error_generic_member_access, path_add_extension)]
 
 use std::{io, path::Path, result};
@@ -17,6 +18,8 @@ mod screen;
 mod tasks;
 mod theme;
 mod widget;
+
+const ICON_BYTES: &[u8] = include_bytes!("../../resources/cascade.ico");
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -95,6 +98,11 @@ fn main() -> Result<()> {
     Ok(iced::application("cascade", Cascade::update, Cascade::view)
         .window(window::Settings {
             min_size: Some(Size::new(720., 520.)),
+            icon: window::icon::from_file_data(
+                ICON_BYTES,
+                Some(image::ImageFormat::Ico),
+            )
+            .ok(),
             ..Default::default()
         })
         .font(fonts::IOSEVKA_REGULAR_BYTES)

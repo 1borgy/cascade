@@ -13,7 +13,7 @@ pub struct Entry {
     pub dir: PathBuf,
     pub name: String,
     pub extension: Extension,
-    metadata: fs::Metadata,
+    pub metadata: fs::Metadata,
 }
 
 impl Entry {

@@ -108,10 +108,12 @@ impl Cascade {
         flags: (PathBuf, Config, Selections, bool),
     ) -> (Self, Task<Message>) {
         let (cascade_dir, config, selections, debug) = flags;
+        let backup_dir = paths::backup_dir(&cascade_dir);
 
         let (dashboard, dashboard_command) = dashboard::Dashboard::new(
             &cascade_dir,
             config.saves_dir.clone(),
+            backup_dir,
             config.default_selection,
             selections,
         );

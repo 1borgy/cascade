@@ -69,7 +69,7 @@ impl Default for Config {
             saves_dir: default_saves_dir(),
             theme: Theme::default(),
             scale_factor: 1.,
-            default_selection: false,
+            default_selection: true,
         }
     }
 }
