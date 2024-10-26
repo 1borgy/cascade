@@ -1,12 +1,12 @@
 use std::{
     fs::{self},
-    io::{BufReader, BufWriter, Write},
+    io::{BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
 use filetime;
 
-use crate::save::{extension::Extension, Content, Error, Result};
+use crate::save::{extension::Extension, Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct Entry {
@@ -85,19 +85,15 @@ impl Entry {
     //pub fn metadata(&self) -> &fs::Metadata {
     //    &self.metadata
     //}
+    //
+    pub fn reader(&self) -> Result<impl Read> {
+        let file = fs::File::open(&self.filepath())?;
+        Ok(BufReader::new(file))
+    }
 
-    pub fn write_content(&self, content: &Content) -> Result<()> {
-        let filepath = self.filepath();
-        let file = fs::File::create(&filepath)?;
-        let mut writer = BufWriter::new(file);
-
-        // TODO: should we set the filename in the content structures?
-        content.write(&mut writer)?;
-        writer.flush()?;
-
-        log::info!("wrote save to {:?}", filepath);
-
-        Ok(())
+    pub fn writer(&self) -> Result<impl Write> {
+        let file = fs::File::create(&self.filepath())?;
+        Ok(BufWriter::new(file))
     }
 
     pub fn overwrite_metadata(&self) -> Result<()> {
@@ -116,14 +112,5 @@ impl Entry {
         filetime::set_file_mtime(&filepath, original_mod_time)?;
 
         Ok(())
-    }
-
-    pub fn load_content(&self) -> Result<Content> {
-        let filepath = self.filepath();
-
-        let file = fs::File::open(&filepath)?;
-        let mut reader = BufReader::new(file);
-
-        Content::read(&mut reader)
     }
 }

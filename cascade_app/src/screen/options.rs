@@ -21,9 +21,9 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub enum Event {
-    SavesDirChanged(PathBuf),
-    ThemeChanged(Theme),
-    ScaleFactorChanged(f64),
+    SetSavesDir(PathBuf),
+    SetTheme(Theme),
+    SetScaleFactor(f64),
 }
 
 pub struct Options {
@@ -66,18 +66,15 @@ impl Options {
             }
             Message::SavesDirChanged(saves_dir) => {
                 self.saves_dir = Some(saves_dir.clone());
-                (
-                    Task::none(),
-                    Some(Event::SavesDirChanged(saves_dir.clone())),
-                )
+                (Task::none(), Some(Event::SetSavesDir(saves_dir.clone())))
             }
             Message::ThemeChanged(theme) => {
                 self.theme = theme;
-                (Task::none(), Some(Event::ThemeChanged(theme)))
+                (Task::none(), Some(Event::SetTheme(self.theme.clone())))
             }
             Message::ScaleFactorChanged(scale_factor) => {
                 self.scale_factor = scale_factor;
-                (Task::none(), Some(Event::ScaleFactorChanged(scale_factor)))
+                (Task::none(), Some(Event::SetScaleFactor(scale_factor)))
             }
         }
     }
@@ -92,12 +89,12 @@ impl Options {
     }
 
     fn saves_dir_picker(&self) -> Element<Message> {
-        // TODO: async
         file_picker(self.saves_dir.clone(), Message::PickSavesDir)
     }
 
     fn theme_picker(&self) -> Element<Message> {
-        pick_list(Theme::ALL, Some(self.theme), Message::ThemeChanged).into()
+        pick_list(Theme::ALL, Some(self.theme.clone()), Message::ThemeChanged)
+            .into()
     }
 
     fn scale_factor_slider(&self) -> Element<Message> {

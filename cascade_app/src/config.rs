@@ -56,6 +56,8 @@ pub struct Config {
     #[serde(default)]
     pub saves_dir: Option<PathBuf>,
     #[serde(default)]
+    pub source_path: Option<PathBuf>,
+    #[serde(default)]
     pub theme: Theme,
     #[serde(default = "default_scale_factor")]
     pub scale_factor: f64,
@@ -67,6 +69,7 @@ impl Default for Config {
     fn default() -> Config {
         Self {
             saves_dir: default_saves_dir(),
+            source_path: None,
             theme: Theme::default(),
             scale_factor: 1.,
             default_selection: true,

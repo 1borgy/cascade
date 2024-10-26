@@ -4,11 +4,11 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use cascade::save::Entry;
+use cascade::save::{thug_pro, Entry};
 
 mod common;
 
-fn read_save_file_bytes(save: &Entry) -> Vec<u8> {
+fn read_entry_bytes(save: &Entry) -> Vec<u8> {
     let filepath = save.filepath();
     let mut file =
         fs::File::open(&filepath).expect("could not open file for reading");
@@ -19,9 +19,9 @@ fn read_save_file_bytes(save: &Entry) -> Vec<u8> {
     bytes
 }
 
-fn diff_save_files(input_save: &Entry, output_save: &Entry) -> bool {
-    let input_bytes = read_save_file_bytes(&input_save);
-    let output_bytes = read_save_file_bytes(&output_save);
+fn diff_save_files(input_entry: &Entry, output_entry: &Entry) -> bool {
+    let input_bytes = read_entry_bytes(&input_entry);
+    let output_bytes = read_entry_bytes(&output_entry);
 
     if input_bytes.len() == output_bytes.len() {
         let mut num_diff_bytes = 0;
@@ -42,31 +42,27 @@ fn diff_save_files(input_save: &Entry, output_save: &Entry) -> bool {
 
         println!(
             "result for {}: {} ({} bytes different)",
-            input_save.filename(),
+            input_entry.filename(),
             status,
             num_diff_bytes
         );
 
         passed
     } else {
-        println!("result for {}: input size ({}) and output size ({}) are different!", input_save.filename(), input_bytes.len(), output_bytes.len());
+        println!("result for {}: input size ({}) and output size ({}) are different!", input_entry.filename(), input_bytes.len(), output_bytes.len());
         false
     }
 }
 
-fn round_trip_save_file(
-    input_save_file: &Entry,
-    output_save_file: &Entry,
-) -> bool {
-    let input_save_content = input_save_file
-        .load_content()
+fn round_trip_save_file(input_entry: &Entry, output_entry: &Entry) -> bool {
+    let input_ska = thug_pro::Ska::read_from(input_entry)
         .expect("could not load input save");
 
-    output_save_file
-        .write_content(&input_save_content)
+    input_ska
+        .write_to(output_entry)
         .expect("could not write output save");
 
-    diff_save_files(input_save_file, output_save_file)
+    diff_save_files(input_entry, output_entry)
 }
 
 #[test]

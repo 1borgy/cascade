@@ -10,20 +10,16 @@ use std::{
 use cascade::{
     lut::{self, Lut},
     qb,
-    save::{self, thug_pro::cas},
+    save::{self, thug_pro},
 };
 use iced::{
-    widget::{self, button, checkbox, scrollable, text, Column, Row, Space},
+    widget::{self, button, checkbox, scrollable, text, Column, Row},
     Alignment, Element, Length, Task,
 };
 use rfd::AsyncFileDialog;
 use tokio::fs;
 
-use crate::{
-    config::{Format, Selections},
-    paths, tasks,
-    widget::heading,
-};
+use crate::{config::Selections, fonts, paths, tasks, widget::heading};
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum Error {
@@ -42,8 +38,8 @@ pub enum Error {
     #[error("tasks error: {0}")]
     Tasks(#[from] tasks::Error),
 
-    #[error("cas error: {0}")]
-    Cas(#[from] cas::Error),
+    #[error("thug pro save error: {0}")]
+    ThugPro(#[from] thug_pro::Error),
 
     #[error("error spawning task")]
     Task,
@@ -61,7 +57,7 @@ impl From<io::Error> for Error {
 pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[derive(Debug, Clone)]
-pub struct SelectableEntry {
+pub struct Entry {
     entry: save::Entry,
     selected: bool,
 }
@@ -74,20 +70,17 @@ pub struct Flags {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    PickSource,
-
-    SourcePicked(Option<PathBuf>),
-    SourceCopied(Result<()>),
-    SourceLoaded(Result<Arc<cas::Cas>>),
-    SourceDumped(Result<usize>),
-
-    ToggleSelection(String),
-    LoadedEntries(Result<BTreeMap<String, SelectableEntry>>),
-
-    ToggleTrickset(bool),
-    ToggleScales(bool),
-
+    LoadedEntries(Result<BTreeMap<String, Entry>>),
+    LoadedSource(Result<Arc<thug_pro::cas::Cas>>),
     LoadedLut(Result<Lut>),
+
+    PickSource,
+    SourcePicked(Option<PathBuf>),
+
+    ToggleSelectAll,
+    ToggleSelection(String),
+    ToggleTricksetFlag(bool),
+    ToggleScalesFlag(bool),
 
     Go,
     Done(Result<()>),
@@ -95,21 +88,23 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub enum Event {
-    SelectionsUpdated(Selections),
+    SetSourcePath(PathBuf),
+    SetDefaultSelection(bool, Selections),
+    SetSelections(Selections),
 }
 
 pub struct Dashboard {
-    source_path: PathBuf,
-    source_dump_path: PathBuf,
     backup_dir: PathBuf,
 
-    source: Option<Arc<cas::Cas>>,
+    source_entry: Option<save::Entry>,
+    source: Option<Arc<thug_pro::Cas>>,
 
     saves_dir: Option<PathBuf>,
-    entries: BTreeMap<String, SelectableEntry>,
+    entries: BTreeMap<String, Entry>,
     default_selection: bool,
 
     flags: Flags,
+
     warning_message: Option<String>,
 
     lut: Option<Lut>,
@@ -117,39 +112,44 @@ pub struct Dashboard {
 
 impl Dashboard {
     pub fn new(
-        cascade_dir: impl AsRef<Path>,
+        source_path: Option<PathBuf>,
         saves_dir: Option<PathBuf>,
         backup_dir: PathBuf,
         default_selection: bool,
         selections: Selections,
     ) -> (Self, Task<Message>) {
-        let cascade_dir = cascade_dir.as_ref();
+        let source_entry = source_path
+            .map(|path| save::Entry::at_path(path).ok())
+            .flatten();
 
-        let source_path = paths::source(cascade_dir);
-        let source_dump_path = paths::source_dump(cascade_dir);
-
-        (
-            Dashboard {
-                source_path: source_path.clone(),
-                source_dump_path,
-                backup_dir,
-                source: None,
-                saves_dir: saves_dir.clone(),
-                entries: BTreeMap::new(),
-                default_selection,
-                flags: Flags::default(),
-                warning_message: None,
-                lut: None,
-            },
-            Task::batch(vec![
-                Task::perform(load_source(source_path), Message::SourceLoaded),
-                Task::perform(
-                    load_entries(saves_dir, selections, default_selection),
-                    Message::LoadedEntries,
+        let tasks = Task::batch(vec![
+            match &source_entry {
+                Some(entry) => Task::perform(
+                    load_source(entry.clone()),
+                    Message::LoadedSource,
                 ),
-                Task::perform(load_lut(), Message::LoadedLut),
-            ]),
-        )
+                None => Task::none(),
+            },
+            Task::perform(
+                load_entries(saves_dir.clone(), selections, default_selection),
+                Message::LoadedEntries,
+            ),
+            Task::perform(load_lut(), Message::LoadedLut),
+        ]);
+
+        let dashboard = Dashboard {
+            backup_dir,
+            source_entry,
+            source: None,
+            saves_dir,
+            entries: BTreeMap::new(),
+            default_selection,
+            flags: Flags::default(),
+            warning_message: None,
+            lut: None,
+        };
+
+        (dashboard, tasks)
     }
 
     fn selections(&self) -> Selections {
@@ -176,11 +176,6 @@ impl Dashboard {
         )
     }
 
-    #[expect(dead_code)]
-    pub fn set_default_selection(&mut self, default_selection: bool) {
-        self.default_selection = default_selection;
-    }
-
     fn set_warning(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
         log::warn!("{}", msg);
@@ -192,66 +187,11 @@ impl Dashboard {
         message: Message,
     ) -> (Task<Message>, Option<Event>) {
         match message {
-            Message::PickSource => {
-                (Task::perform(pick_source(), Message::SourcePicked), None)
-            }
-
-            Message::SourcePicked(Some(path)) => (
-                Task::perform(
-                    copy_file(path, self.source_path.clone()),
-                    Message::SourceCopied,
-                ),
-                None,
-            ),
-            Message::SourcePicked(None) => (Task::none(), None),
-
-            Message::SourceDumped(Ok(_data)) => (Task::none(), None),
-            Message::SourceDumped(Err(err)) => {
-                self.set_warning(format!("error dumping source: {}", err));
-                (Task::none(), None)
-            }
-
-            Message::SourceCopied(Ok(_)) => (
-                Task::perform(
-                    load_source(self.source_path.clone()),
-                    Message::SourceLoaded,
-                ),
-                None,
-            ),
-            Message::SourceCopied(Err(err)) => {
-                self.set_warning(format!("error copying source: {}", err));
-                (Task::none(), None)
-            }
-
-            Message::SourceLoaded(Ok(content)) => {
+            Message::LoadedSource(Ok(content)) => {
                 self.source = Some(Arc::clone(&content));
-
-                match cas::Data::try_from(content.data.clone()) {
-                    Ok(data) => (
-                        Task::perform(
-                            tasks::write_serializable(
-                                data,
-                                self.source_dump_path.clone(),
-                                Format::Ron,
-                            ),
-                            |result| {
-                                Message::SourceDumped(
-                                    result.map_err(Error::from),
-                                )
-                            },
-                        ),
-                        None,
-                    ),
-                    Err(err) => {
-                        self.set_warning(format!(
-                            "error loading data: {}",
-                            err
-                        ));
-                        (Task::none(), None)
-                    }
-                }
+                (Task::none(), None)
             }
-            Message::SourceLoaded(Err(err)) => {
+            Message::LoadedSource(Err(err)) => {
                 self.set_warning(format!("error loading source: {}", err));
                 (Task::none(), None)
             }
@@ -274,23 +214,63 @@ impl Dashboard {
                 (Task::none(), None)
             }
 
+            Message::PickSource => {
+                (Task::perform(pick_source(), Message::SourcePicked), None)
+            }
+
+            Message::SourcePicked(Some(path)) => {
+                match save::Entry::at_path(path.clone()) {
+                    Ok(entry) => {
+                        self.source_entry = Some(entry.clone());
+
+                        (
+                            Task::perform(
+                                load_source(entry),
+                                Message::LoadedSource,
+                            ),
+                            Some(Event::SetSourcePath(path)),
+                        )
+                    }
+                    Err(err) => {
+                        self.set_warning(format!(
+                            "error picking source: {err}"
+                        ));
+                        (Task::none(), None)
+                    }
+                }
+            }
+            Message::SourcePicked(None) => (Task::none(), None),
+
+            Message::ToggleSelectAll => {
+                self.default_selection = !self.default_selection;
+
+                for (_, entry) in self.entries.iter_mut() {
+                    entry.selected = self.default_selection;
+                }
+
+                (
+                    Task::none(),
+                    Some(Event::SetDefaultSelection(
+                        self.default_selection,
+                        self.selections(),
+                    )),
+                )
+            }
+
             Message::ToggleSelection(name) => {
                 if let Some(entry) = self.entries.get_mut(&name) {
                     entry.selected = !entry.selected;
                 }
 
-                (
-                    Task::none(),
-                    Some(Event::SelectionsUpdated(self.selections())),
-                )
+                (Task::none(), Some(Event::SetSelections(self.selections())))
             }
 
-            Message::ToggleTrickset(selected) => {
+            Message::ToggleTricksetFlag(selected) => {
                 self.flags.trickset = selected;
                 (Task::none(), None)
             }
 
-            Message::ToggleScales(selected) => {
+            Message::ToggleScalesFlag(selected) => {
                 self.flags.scales = selected;
                 (Task::none(), None)
             }
@@ -362,7 +342,9 @@ impl Dashboard {
             Column::new()
                 .push(text(format!("filename: {}", filename)).size(12))
                 .push(text(format!("gender: {}", gender)).size(12))
-                .push(text(format!("\ntodo: idk add more fields here")).size(12))
+                .push(
+                    text(format!("\ntodo: idk add more fields here")).size(12),
+                )
                 .into()
         } else {
             text("no source loaded").into()
@@ -390,11 +372,26 @@ impl Dashboard {
             .width(Length::Fill)
             .into()
     }
-    fn view_selection_list(&self) -> Element<Message> {
-        scrollable(self.entries.iter().fold(
-            Column::new().spacing(2),
-            |column, (filename, save)| {
+
+    fn view_entries(&self) -> Element<Message> {
+        self.entries
+            .iter()
+            .fold(Column::new().spacing(2), |column, (filename, save)| {
                 column.push(self.view_selection_button(filename, save.selected))
+            })
+            .into()
+    }
+
+    fn view_queue(&self) -> Element<Message> {
+        scrollable(self.entries.values().filter(|entry| entry.selected).fold(
+            Column::new().spacing(2),
+            |column, entry| {
+                column.push(
+                    self.view_selection_button(
+                        &entry.entry.name,
+                        entry.selected,
+                    ),
+                )
             },
         ))
         .into()
@@ -419,35 +416,47 @@ impl Dashboard {
             .push(heading("source"))
             .push(button("set source cas").on_press(Message::PickSource))
             .push(self.view_source_info())
-   }
+            .push_maybe(
+                self.warning_message.clone().map(|msg| text(msg).size(12)),
+            )
+    }
 
     fn view_center(&self) -> Column<Message> {
         Column::new()
             .align_x(Alignment::Center)
             .spacing(10)
             .push(heading("select"))
-            .push(self.view_selection_list())
+            .push(
+                button(
+                    text(match self.default_selection {
+                        true => "deselect all",
+                        false => "select all",
+                    })
+                    .font(fonts::IOSEVKA_BOLD),
+                )
+                .on_press(Message::ToggleSelectAll)
+                .width(Length::Fill),
+            )
+            .push(scrollable(self.view_entries()))
     }
 
     fn view_right(&self) -> Column<Message> {
         Column::new()
             .align_x(Alignment::End)
+            .spacing(10)
             .push(heading("copy"))
-            .push(Space::new(10, 10))
             .push(self.view_flag(
                 "trickset",
                 self.flags.trickset,
-                Message::ToggleTrickset,
+                Message::ToggleTricksetFlag,
             ))
             .push(self.view_flag(
                 "scales",
                 self.flags.scales,
-                Message::ToggleScales,
+                Message::ToggleScalesFlag,
             ))
             .push(button("go!").on_press(Message::Go))
-            .push_maybe(
-                self.warning_message.clone().map(|msg| text(msg).size(12)),
-            )
+            .push(self.view_queue())
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -456,7 +465,6 @@ impl Dashboard {
             .push(self.view_center().width(Length::Fill))
             .push(self.view_right().width(Length::Fill))
             .width(Length::Fill)
-            .height(Length::Fill)
             .spacing(10)
             .into()
     }
@@ -473,19 +481,12 @@ async fn pick_source() -> Option<PathBuf> {
     )
 }
 
-async fn copy_file(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
-    tokio::fs::copy(&from, &to).await?;
-    Ok(())
-}
-
-async fn load_source(path: impl AsRef<Path>) -> Result<Arc<cas::Cas>> {
-    let entry = save::Entry::at_path(path)?;
-
-    let content = tokio::spawn(async move { entry.load_content() })
+async fn load_source(entry: save::Entry) -> Result<Arc<thug_pro::Cas>> {
+    let content = tokio::spawn(async move { thug_pro::Ska::read_from(&entry) })
         .await
         .map_err(|_| Error::Task)??;
 
-    let cas = cas::Cas::try_from(content)?;
+    let cas = thug_pro::Cas::try_from(content)?;
 
     Ok(Arc::new(cas))
 }
@@ -502,7 +503,7 @@ async fn load_entries(
     saves_dir: Option<impl AsRef<Path>>,
     selections: Selections,
     default_selection: bool,
-) -> Result<BTreeMap<String, SelectableEntry>> {
+) -> Result<BTreeMap<String, Entry>> {
     let saves_dir = saves_dir.ok_or(Error::NoSavesDir)?;
     let entries = save::load_entries(saves_dir)?;
 
@@ -516,7 +517,7 @@ async fn load_entries(
 
             (
                 save.name.clone(),
-                SelectableEntry {
+                Entry {
                     selected,
                     entry: save,
                 },
@@ -525,30 +526,34 @@ async fn load_entries(
         .collect())
 }
 
-fn make_transform(source: &cas::Cas, flags: Flags) -> cas::Cas {
-    cas::Cas {
-        header: source.header.clone(),
+fn make_transform(
+    source: &thug_pro::cas::Cas,
+    flags: Flags,
+) -> thug_pro::cas::Cas {
+    thug_pro::cas::Cas {
         summary: source.summary.clone(),
-        data: cas::Data {
+        data: thug_pro::cas::Data {
             // CustomSkater
             custom_skater: source.data.custom_skater.clone().map(
                 move |custom_skater| {
-                    cas::CustomSkater {
+                    thug_pro::cas::CustomSkater {
                         // CustomSkater.custom
                         custom: custom_skater.custom.map(move |custom| {
-                            cas::Custom {
+                            thug_pro::cas::Custom {
                                 // CustomSkater.custom.info
-                                info: custom.info.map(|info| cas::Info {
-                                    // CustomSkater.custom.info.trick_mapping
-                                    trick_mapping: flags
-                                        .trickset
-                                        .then_some(info.trick_mapping)
-                                        .flatten(),
-                                    // CustomSkater.custom.info.specials
-                                    specials: flags
-                                        .trickset
-                                        .then_some(info.specials)
-                                        .flatten(),
+                                info: custom.info.map(|info| {
+                                    thug_pro::cas::Info {
+                                        // CustomSkater.custom.info.trick_mapping
+                                        trick_mapping: flags
+                                            .trickset
+                                            .then_some(info.trick_mapping)
+                                            .flatten(),
+                                        // CustomSkater.custom.info.specials
+                                        specials: flags
+                                            .trickset
+                                            .then_some(info.specials)
+                                            .flatten(),
+                                    }
                                 }),
                                 // CustomSkater.custom.appearance (scales group)
                                 scales: flags
@@ -561,7 +566,7 @@ fn make_transform(source: &cas::Cas, flags: Flags) -> cas::Cas {
                 },
             ),
             story_skater: source.data.story_skater.clone().map(
-                move |story_skater| cas::StorySkater {
+                move |story_skater| thug_pro::cas::StorySkater {
                     tricks: flags
                         .trickset
                         .then_some(story_skater.tricks)
@@ -609,7 +614,7 @@ async fn backup<P: AsRef<Path>>(
 async fn go(
     backup_dir: impl AsRef<Path>,
     entries: impl IntoIterator<Item = save::Entry> + Clone,
-    source: Arc<cas::Cas>,
+    source: Arc<thug_pro::cas::Cas>,
     flags: Flags,
 ) -> Result<()> {
     let entries = entries.into_iter().collect::<Vec<_>>();
@@ -617,9 +622,6 @@ async fn go(
     backup(backup_dir, &entries).await?;
 
     let transform = Arc::new(make_transform(source.as_ref(), flags));
-    let transform_path = paths::transform_dump(paths::cascade_dir()?);
-
-    tasks::write_serializable(&transform, transform_path, Format::Ron).await?;
 
     for entry in entries.into_iter() {
         let transform = Arc::clone(&transform);
@@ -646,31 +648,14 @@ async fn go(
 
 async fn process_entry(
     entry: &save::Entry,
-    transform: Arc<cas::Cas>,
+    transform: Arc<thug_pro::Cas>,
 ) -> Result<()> {
-    let mut content = entry.load_content()?;
+    let mut ska = thug_pro::Ska::read_from(entry)?;
 
-    // let entry_cas = cas::Cas::try_from(content.clone())?;
-    // tasks::write_serializable(
-    //     &entry_cas,
-    //     entry.filepath().with_added_extension("ron"),
-    //     Format::Ron,
-    // )
-    // .await?;
+    transform.modify(&mut ska)?;
+    ska.write_to(entry)?;
 
-    transform.modify(&mut content)?;
-
-    entry.write_content(&content)?;
     entry.overwrite_metadata()?;
-
-    // let out_entry = entry.with_name(format!("{}.out", entry.name));
-    // let out_entry_cas = cas::Cas::try_from(content.clone())?;
-    // tasks::write_serializable(
-    //     &out_entry_cas,
-    //     out_entry.filepath().with_added_extension("ron"),
-    //     Format::Ron,
-    // )
-    // .await?;
 
     Ok(())
 }

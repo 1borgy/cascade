@@ -1,10 +1,11 @@
+pub mod button;
+
 use std::fmt;
 
+use iced::application;
 use serde::{Deserialize, Serialize};
 
-#[derive(
-    Copy, Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq,
-)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Theme {
     Light,
     Dark,
@@ -15,8 +16,8 @@ pub enum Theme {
     GruvboxLight,
     GruvboxDark,
     CatppuccinLatte,
-    CatppuccinFrappe,
     #[default]
+    CatppuccinFrappe,
     CatppuccinMacchiato,
     CatppuccinMocha,
     TokyoNight,
@@ -30,8 +31,8 @@ pub enum Theme {
     Oxocarbon,
 }
 
-impl From<Theme> for iced::Theme {
-    fn from(theme: Theme) -> Self {
+impl From<&Theme> for iced::Theme {
+    fn from(theme: &Theme) -> Self {
         match theme {
             Theme::Light => iced::Theme::Light,
             Theme::Dark => iced::Theme::Dark,
@@ -357,3 +358,14 @@ impl fmt::Display for Theme {
 //         )
 //     }
 // }
+
+impl application::DefaultStyle for Theme {
+    fn default_style(&self) -> application::Appearance {
+        let theme = iced::Theme::from(self);
+        let palette = theme.palette();
+        application::Appearance {
+            background_color: palette.background,
+            text_color: palette.primary,
+        }
+    }
+}

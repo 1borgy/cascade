@@ -4,3 +4,7 @@ fn main() {
     res.set_icon("../resources/cascade.ico");
     res.compile().unwrap();
 }
+
+
+#[cfg(not(windows))]
+fn main() {}

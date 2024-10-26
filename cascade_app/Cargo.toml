@@ -26,9 +26,9 @@ tokio = { version = "1.40.0", features = ["fs", "io-util"] }
 toml = "0.8.8"
 
 [dependencies.iced]
-version = "0.13.0"
+version = "0.13.1"
 default-features = false
-features = ["tokio", "lazy", "advanced", "image", "debug", "wgpu"]
+features = ["tokio", "lazy", "advanced", "image", "debug", "wgpu", "fira-sans"]
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"

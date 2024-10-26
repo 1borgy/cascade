@@ -95,7 +95,8 @@ fn main() -> Result<()> {
     let selections = Selections::load(&selections_path).unwrap_or_default();
     log::info!("loaded selections: {:?}", selections);
 
-    Ok(iced::application("cascade", Cascade::update, Cascade::view)
+    iced::application("cascade", Cascade::update, Cascade::view)
+        .theme(Cascade::theme)
         .window(window::Settings {
             min_size: Some(Size::new(720., 520.)),
             icon: window::icon::from_file_data(
@@ -105,12 +106,13 @@ fn main() -> Result<()> {
             .ok(),
             ..Default::default()
         })
-        .font(fonts::IOSEVKA_REGULAR_BYTES)
-        .font(fonts::IOSEVKA_BOLD_BYTES)
-        .default_font(fonts::IOSEVKA_REGULAR)
+        //.font(fonts::IOSEVKA_REGULAR_BYTES)
+        //.font(fonts::IOSEVKA_BOLD_BYTES)
+        //.default_font(fonts::IOSEVKA_REGULAR)
         .scale_factor(Cascade::scale_factor)
-        .theme(Cascade::theme)
         .run_with(move || {
             Cascade::new((cascade_dir, config, selections, debug))
-        })?)
+        })?;
+
+    Ok(())
 }

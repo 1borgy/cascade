@@ -7,7 +7,13 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use count_write::CountWrite;
 use serde::{Deserialize, Serialize};
 
-use crate::{crc32, qb, save::Result};
+use crate::{
+    crc32, qb,
+    save::{
+        self,
+        thug_pro::{Error, Result},
+    },
+};
 
 const SAVE_FILE_SIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
@@ -56,16 +62,16 @@ impl Header {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Content {
+pub struct Ska {
     pub header: Header,
 
     pub summary: Box<qb::Structure>,
     pub data: Box<qb::Structure>,
 }
 
-impl Content {
+impl Ska {
     pub fn read(reader: &mut impl Read) -> Result<Self> {
-        Ok(Content {
+        Ok(Self {
             header: Header::read(reader)?,
             summary: Box::new(qb::Structure::read(reader)?),
             data: Box::new(qb::Structure::read(reader)?),
@@ -97,6 +103,16 @@ impl Content {
         count_writer.write(&vec![PADDING_BYTE; num_padding_bytes])?;
 
         Ok(())
+    }
+
+    pub fn read_from(entry: &save::Entry) -> Result<Self> {
+        let mut reader = entry.reader()?;
+        Self::read(&mut reader)
+    }
+
+    pub fn write_to(self, entry: &save::Entry) -> Result<()> {
+        let mut reader = entry.writer()?;
+        self.write(&mut reader)
     }
 
     fn calculate_header(&self) -> Result<Header> {

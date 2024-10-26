@@ -1,22 +1,9 @@
-use std::result;
-
 use serde::Serialize;
 
-use crate::{qb, save};
-
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum Error {
-    #[error("qb error: {0}")]
-    Qb(#[from] qb::Error),
-
-    #[error("symbol not found: {0}")]
-    SymbolNotFound(String),
-
-    #[error("symbol not found: {0}")]
-    ExpectedStructure(String, qb::Value),
-}
-
-pub type Result<T, E = Error> = result::Result<T, E>;
+use crate::{
+    qb,
+    save::thug_pro::{ska, Error, Result},
+};
 
 fn expect_symbol(
     parent: Box<qb::Structure>,
@@ -60,17 +47,15 @@ fn expect_structure_mut(
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Cas {
-    pub header: save::Header,
     pub summary: Summary,
     pub data: Data,
 }
 
-impl TryFrom<save::Content> for Cas {
+impl TryFrom<ska::Ska> for Cas {
     type Error = Error;
 
-    fn try_from(content: save::Content) -> Result<Self> {
+    fn try_from(content: ska::Ska) -> Result<Self> {
         Ok(Self {
-            header: content.header,
             data: Data::try_from(content.data)?,
             summary: Summary(content.summary),
         })
@@ -78,7 +63,7 @@ impl TryFrom<save::Content> for Cas {
 }
 
 impl Cas {
-    pub fn modify(&self, content: &mut save::Content) -> Result<()> {
+    pub fn modify(&self, content: &mut ska::Ska) -> Result<()> {
         self.data.modify(&mut content.data)?;
         Ok(())
     }

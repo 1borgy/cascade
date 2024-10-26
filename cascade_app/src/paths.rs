@@ -6,9 +6,6 @@ use std::{
 
 const CONFIG_FILENAME: &'static str = "cascade.ron";
 const SELECTIONS_FILENAME: &'static str = "selections.ron";
-const SOURCE_FILENAME: &'static str = "source.SKA";
-const SOURCE_DUMP_FILENAME: &'static str = "source.ron";
-const TRANSFORM_DUMP_FILENAME: &'static str = "transform.ron";
 const LOG_FILENAME: &'static str = "cascade.log";
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -112,21 +109,6 @@ pub fn config(cascade_dir: impl AsRef<Path>) -> PathBuf {
 pub fn selections(cascade_dir: impl AsRef<Path>) -> PathBuf {
     // %localappdata%/cascade/selections.ron
     cascade_dir.as_ref().join(SELECTIONS_FILENAME)
-}
-
-pub fn source(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/source.SKA
-    cascade_dir.as_ref().join(SOURCE_FILENAME)
-}
-
-pub fn source_dump(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/source.ron
-    cascade_dir.as_ref().join(SOURCE_DUMP_FILENAME)
-}
-
-pub fn transform_dump(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/transform.ron
-    cascade_dir.as_ref().join(TRANSFORM_DUMP_FILENAME)
 }
 
 pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {

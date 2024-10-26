@@ -1,12 +1,10 @@
 use std::path::{Path, PathBuf};
 
-mod content;
 mod entry;
 mod error;
 mod extension;
 pub mod thug_pro;
 
-pub use content::{Content, Header};
 pub use entry::Entry;
 pub use error::{Error, Result};
 pub use extension::Extension;

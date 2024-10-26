@@ -2,7 +2,7 @@ use std::{default::Default, fmt::Debug, path::PathBuf};
 
 use enum_iterator::{all, Sequence};
 use iced::{
-    font,
+    application, font,
     widget::{self, button, text, Column, Row},
     Element, Length, Padding, Task,
 };
@@ -12,6 +12,7 @@ use crate::{
     fonts, paths,
     screen::{dashboard, options},
     tasks,
+    theme::Theme,
 };
 
 #[derive(Debug, Clone)]
@@ -50,6 +51,7 @@ pub struct Cascade {
     debug: bool,
 
     selected_view: Screen,
+    theme: Theme,
 
     dashboard: dashboard::Dashboard,
     options: options::Options,
@@ -111,7 +113,7 @@ impl Cascade {
         let backup_dir = paths::backup_dir(&cascade_dir);
 
         let (dashboard, dashboard_command) = dashboard::Dashboard::new(
-            &cascade_dir,
+            config.source_path.clone(),
             config.saves_dir.clone(),
             backup_dir,
             config.default_selection,
@@ -133,6 +135,7 @@ impl Cascade {
             Cascade {
                 config_path,
                 selections_path,
+                theme: config.theme.clone(),
                 config,
                 debug,
                 selected_view,
@@ -153,8 +156,17 @@ impl Cascade {
         self.config.scale_factor
     }
 
-    pub fn theme(&self) -> iced::Theme {
-        self.config.theme.into()
+    pub fn theme(&self) -> Theme {
+        self.config.theme.clone()
+    }
+
+    pub fn style(&self, theme: &Theme) -> application::Appearance {
+        let theme = iced::Theme::from(theme);
+        let palette = theme.palette();
+        application::Appearance {
+            background_color: palette.background,
+            text_color: palette.primary,
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -165,7 +177,7 @@ impl Cascade {
                 Task::batch(vec![
                     command.map(Message::Options),
                     match event {
-                        Some(options::Event::SavesDirChanged(saves_dir)) => {
+                        Some(options::Event::SetSavesDir(saves_dir)) => {
                             self.config.saves_dir = Some(saves_dir.clone());
 
                             Task::batch(vec![
@@ -176,14 +188,12 @@ impl Cascade {
                             ])
                         }
 
-                        Some(options::Event::ScaleFactorChanged(
-                            scale_factor,
-                        )) => {
+                        Some(options::Event::SetScaleFactor(scale_factor)) => {
                             self.config.scale_factor = scale_factor;
                             self.write_config()
                         }
 
-                        Some(options::Event::ThemeChanged(theme)) => {
+                        Some(options::Event::SetTheme(theme)) => {
                             self.config.theme = theme;
                             self.write_config()
                         }
@@ -199,9 +209,25 @@ impl Cascade {
                 Task::batch(vec![
                     command.map(Message::Dashboard),
                     match event {
-                        Some(dashboard::Event::SelectionsUpdated(
+                        Some(dashboard::Event::SetSelections(selections)) => {
+                            self.write_selections(selections)
+                        }
+                        Some(dashboard::Event::SetDefaultSelection(
+                            default_selection,
                             selections,
-                        )) => self.write_selections(selections),
+                        )) => {
+                            self.config.default_selection = default_selection;
+
+                            Task::batch(vec![
+                                self.write_config(),
+                                self.write_selections(selections),
+                            ])
+                        }
+
+                        Some(dashboard::Event::SetSourcePath(path)) => {
+                            self.config.source_path = Some(path);
+                            self.write_config()
+                        }
 
                         None => Task::none(),
                     },
