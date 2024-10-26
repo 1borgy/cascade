@@ -4,8 +4,9 @@ use std::{
     result,
 };
 
-const CONFIG_FILENAME: &'static str = "cascade.ron";
+const CONFIG_FILENAME: &'static str = "cascade.toml";
 const SELECTIONS_FILENAME: &'static str = "selections.ron";
+const THEME_FILENAME: &'static str = "theme.toml";
 const LOG_FILENAME: &'static str = "cascade.log";
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -102,13 +103,18 @@ pub fn backup_dir(cascade_dir: impl AsRef<Path>) -> PathBuf {
 }
 
 pub fn config(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/cascade.ron
+    // %localappdata%/cascade/cascade.toml
     cascade_dir.as_ref().join(CONFIG_FILENAME)
 }
 
 pub fn selections(cascade_dir: impl AsRef<Path>) -> PathBuf {
     // %localappdata%/cascade/selections.ron
     cascade_dir.as_ref().join(SELECTIONS_FILENAME)
+}
+
+pub fn theme(cascade_dir: impl AsRef<Path>) -> PathBuf {
+    // %localappdata%/cascade/theme.toml
+    cascade_dir.as_ref().join(THEME_FILENAME)
 }
 
 pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {

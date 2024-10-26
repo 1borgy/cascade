@@ -26,5 +26,5 @@ pub fn entries() -> Vec<save::Entry> {
         "saves".into(),
     ]);
 
-    save::load_entries(&saves_dir).expect("could not find saves directory")
+    save::find_entries(&saves_dir).expect("could not find saves directory")
 }

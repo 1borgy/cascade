@@ -1,0 +1,32 @@
+# shoutout @wermipls
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+
+      - name: install required rustup components
+        run: |
+          rustup component add rustfmt --toolchain nightly
+          rustup target add x86_64-pc-windows-gnu
+
+      - name: check
+        run: cargo check
+
+      - name: test
+        run: cargo test --all -- --nocapture
+
+      - name: fmt
+        run: cargo fmt --all -- --check

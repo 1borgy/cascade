@@ -9,10 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     crc32, qb,
-    save::{
-        self,
-        thug_pro::{Error, Result},
-    },
+    save::{self, thug_pro::Result},
 };
 
 const SAVE_FILE_SIZE: usize = 90112;
@@ -94,7 +91,7 @@ impl Ska {
             SAVE_FILE_SIZE.saturating_sub(num_bytes_written);
 
         log::info!(
-            "wrote {} bytes, padding {} bytes to hit {}",
+            "wrote {} bytes, padding with {} bytes to fill {} bytes",
             num_bytes_written,
             num_padding_bytes,
             SAVE_FILE_SIZE

@@ -12,14 +12,30 @@ use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 mod app;
 mod config;
+mod dashboard;
 mod fonts;
 mod paths;
-mod screen;
 mod tasks;
 mod theme;
 mod widget;
 
-const ICON_BYTES: &[u8] = include_bytes!("../../resources/cascade.ico");
+pub use config::Theme;
+
+pub type Renderer = iced::Renderer;
+pub type Element<'a, Message> = iced::Element<'a, Message, Theme, Renderer>;
+pub type Content<'a, Message> =
+    iced::widget::pane_grid::Content<'a, Message, Theme, Renderer>;
+pub type TitleBar<'a, Message> =
+    iced::widget::pane_grid::TitleBar<'a, Message, Theme, Renderer>;
+pub type Column<'a, Message> =
+    iced::widget::Column<'a, Message, Theme, Renderer>;
+pub type Row<'a, Message> = iced::widget::Row<'a, Message, Theme, Renderer>;
+pub type Text<'a> = iced::widget::Text<'a, Theme, Renderer>;
+pub type Container<'a, Message> =
+    iced::widget::Container<'a, Message, Theme, Renderer>;
+pub type Button<'a, Message> = iced::widget::Button<'a, Message, Theme>;
+
+const CASCADE_ICON_BYTES: &[u8] = include_bytes!("../../resources/cascade.ico");
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -66,8 +82,9 @@ fn configure_logging(path: impl AsRef<Path>) -> Result<()> {
         .chain(
             fern::Dispatch::new()
                 .level(log::LevelFilter::Info)
-                .level_for("wgpu_core", log::LevelFilter::Warn)
-                .level_for("wgpu_hal", log::LevelFilter::Warn)
+                .level_for("wgpu_core", log::LevelFilter::Error)
+                .level_for("wgpu_hal", log::LevelFilter::Error)
+                .level_for("iced_winit", log::LevelFilter::Error)
                 .chain(io::stdout())
                 .chain(fern::log_file(&path)?),
         )
@@ -86,32 +103,32 @@ fn main() -> Result<()> {
 
     configure_logging(paths::log(&cascade_dir))?;
 
-    let config_path = paths::config(&cascade_dir);
-    let selections_path = paths::selections(&cascade_dir);
-
-    let config = Config::load(&config_path).unwrap_or_default();
+    let config = Config::load(paths::config(&cascade_dir)).unwrap_or_default();
     log::info!("loaded config: {:?}", config);
 
-    let selections = Selections::load(&selections_path).unwrap_or_default();
+    let selections =
+        Selections::load(paths::selections(&cascade_dir)).unwrap_or_default();
     log::info!("loaded selections: {:?}", selections);
+
+    let theme = Theme::load(paths::theme(&cascade_dir)).unwrap_or_default();
+    log::info!("loaded theme: {:?}", theme);
 
     iced::application("cascade", Cascade::update, Cascade::view)
         .theme(Cascade::theme)
         .window(window::Settings {
             min_size: Some(Size::new(720., 520.)),
             icon: window::icon::from_file_data(
-                ICON_BYTES,
+                CASCADE_ICON_BYTES,
                 Some(image::ImageFormat::Ico),
             )
             .ok(),
             ..Default::default()
         })
-        //.font(fonts::IOSEVKA_REGULAR_BYTES)
-        //.font(fonts::IOSEVKA_BOLD_BYTES)
-        //.default_font(fonts::IOSEVKA_REGULAR)
+        .font(fonts::ICONS_FONT_BYTES)
         .scale_factor(Cascade::scale_factor)
+        .subscription(Cascade::subscription)
         .run_with(move || {
-            Cascade::new((cascade_dir, config, selections, debug))
+            Cascade::new((cascade_dir, config, selections, theme, debug))
         })?;
 
     Ok(())

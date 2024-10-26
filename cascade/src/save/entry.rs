@@ -1,10 +1,9 @@
 use std::{
     fs::{self},
+    hash::{Hash, Hasher},
     io::{BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
-
-use filetime;
 
 use crate::save::{extension::Extension, Error, Result};
 
@@ -15,6 +14,21 @@ pub struct Entry {
     pub extension: Extension,
     pub metadata: fs::Metadata,
 }
+
+impl Hash for Entry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.filepath().hash(state);
+    }
+}
+
+impl PartialEq for Entry {
+    fn eq(&self, other: &Self) -> bool {
+        // TODO: store filepath in entry
+        self.filepath() == other.filepath()
+    }
+}
+
+impl Eq for Entry {}
 
 impl Entry {
     pub fn at_path<P: AsRef<Path>>(filepath: P) -> Result<Self> {
@@ -82,10 +96,10 @@ impl Entry {
         self.dir.join(self.filename())
     }
 
-    //pub fn metadata(&self) -> &fs::Metadata {
-    //    &self.metadata
-    //}
-    //
+    pub fn metadata(&self) -> &fs::Metadata {
+        &self.metadata
+    }
+
     pub fn reader(&self) -> Result<impl Read> {
         let file = fs::File::open(&self.filepath())?;
         Ok(BufReader::new(file))

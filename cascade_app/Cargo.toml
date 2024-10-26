@@ -4,7 +4,7 @@ version = "0.3.0-rc.1"
 edition = "2021"
 
 [[bin]]
-name = "cascade_app"
+name = "cascade"
 path = "src/main.rs"
 
 [dependencies]
@@ -16,6 +16,7 @@ enum-iterator = "1.4.1"
 fern = { version = "0.6.2", features = ["colored"] }
 hex-literal = "0.4.1"
 image = "0.24.0"
+indexmap = "2.7.0"
 log = "0.4.20"
 rfd = "0.12.1"
 ron = "0.8.1"

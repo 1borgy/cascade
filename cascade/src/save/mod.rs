@@ -9,14 +9,14 @@ pub use entry::Entry;
 pub use error::{Error, Result};
 pub use extension::Extension;
 
-pub fn load_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
+pub fn find_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
     let dir = PathBuf::from(dir.as_ref());
 
     dir.is_dir()
         .then(|| ())
         .ok_or_else(|| Error::NoSuchDirectory(dir.clone()))?;
 
-    log::info!("loading entries in {:?}", dir);
+    log::info!("finding entries in {:?}", dir);
 
     Ok(dir
         .read_dir()?
@@ -26,7 +26,7 @@ pub fn load_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
 
             match Entry::at_path(&filepath) {
                 Ok(save) => {
-                    log::info!("load entry {:?}", filepath);
+                    log::info!("found entry {:?}", filepath);
                     Some(save)
                 }
                 Err(e) => {

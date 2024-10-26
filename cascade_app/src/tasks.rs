@@ -1,6 +1,6 @@
 use std::{io, path::Path};
 
-use ron::{de::SpannedError, ser::PrettyConfig};
+use ron::de::SpannedError;
 use serde::Serialize;
 use tokio::{fs, io::AsyncWriteExt};
 
@@ -14,6 +14,9 @@ pub enum Error {
     #[error("ron serialization error: {0}")]
     Ron(#[from] ron::Error),
 
+    #[error("toml serialization error: {0}")]
+    Toml(#[from] toml::ser::Error),
+
     #[error("ron deserialization error: {0}")]
     Spanned(#[from] SpannedError),
 }
@@ -24,7 +27,7 @@ impl From<io::Error> for Error {
     }
 }
 
-pub async fn write_serializable(
+pub async fn write(
     obj: impl Serialize,
     to: impl AsRef<Path>,
     format: Format,
@@ -32,9 +35,8 @@ pub async fn write_serializable(
     let mut file = fs::File::create(&to).await?;
 
     let contents = match format {
-        Format::Ron => {
-            ron::ser::to_string_pretty(&obj, PrettyConfig::default())?
-        }
+        Format::Ron => ron::ser::to_string(&obj)?,
+        Format::Toml => toml::ser::to_string_pretty(&obj)?,
     };
 
     let bytes = file.write(&contents.as_bytes()).await?;
