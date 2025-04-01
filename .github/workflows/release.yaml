@@ -29,15 +29,15 @@ jobs:
           $project_version = cat .\cascade_app\Cargo.toml | grep -oE '^version = \"?[0-9]+\.[0-9]+\.[0-9]+\"' | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"
           "project_version=$project_version" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: install required rustup components
-        run: |
-          rustup component add rustfmt --toolchain nightly
-          rustup target add x86_64-pc-windows-gnu
-
       - name: install nightly rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
+
+      - name: install required rustup components
+        run: |
+          rustup component add rustfmt --toolchain nightly
+          rustup target add x86_64-pc-windows-gnu
 
       - name: cargo build
         run: cargo build --target x86_64-pc-windows-gnu --release
@@ -46,5 +46,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: true
-          # Probably a better way to do this
           files: ./target/release/cascade.exe
