@@ -1,26 +1,16 @@
-use std::{backtrace::Backtrace, io, path::PathBuf};
+use std::{io, path::PathBuf, result};
 
-use thiserror::Error;
+use crate::qb;
 
-use crate::structure::StructureError;
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum Error {
+    #[error("io error: {0}")]
+    Io(io::ErrorKind),
 
-#[derive(Error, Debug)]
-pub enum SaveError {
-    #[error("an io error occurred: {source}")]
-    Io {
-        #[from]
-        source: io::Error,
-        backtrace: Backtrace,
-    },
+    #[error("structure error: {0}")]
+    Symbol(#[from] qb::Error),
 
-    #[error("an error occurred while reading/writing symbols")]
-    Symbol {
-        #[from]
-        source: StructureError,
-        backtrace: Backtrace,
-    },
-
-    #[error("unknown save file extension {0}")]
+    #[error("unknown save file extension \"{0}\"")]
     UnknownFileExtension(String),
 
     #[error("directory \"{0}\" was not found")]
@@ -29,3 +19,11 @@ pub enum SaveError {
     #[error("save file path \"{0}\" is not valid")]
     InvalidSaveFilePath(PathBuf),
 }
+
+impl From<io::Error> for Error {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value.kind())
+    }
+}
+
+pub type Result<T, E = Error> = result::Result<T, E>;

@@ -1,6 +1,6 @@
 use std::{env, fs, path::PathBuf};
 
-use cascade::save::SaveCollection;
+use cascade::save;
 
 pub fn output_dir() -> PathBuf {
     let temp_dir = env::temp_dir();
@@ -16,13 +16,15 @@ pub fn output_dir() -> PathBuf {
     output_dir
 }
 
-pub fn save_collection() -> SaveCollection {
+pub fn entries() -> Vec<save::Entry> {
     let cwd = env::current_dir().expect("could not get cwd");
 
-    let mut saves_dir = PathBuf::from(cwd);
-    saves_dir.push("..");
-    saves_dir.push("resources");
-    saves_dir.push("saves");
+    let saves_dir = PathBuf::from_iter(vec![
+        cwd,
+        "..".into(),
+        "resources".into(),
+        "saves".into(),
+    ]);
 
-    SaveCollection::at_dir(&saves_dir).expect("could not find saves directory")
+    save::find_entries(&saves_dir).expect("could not find saves directory")
 }

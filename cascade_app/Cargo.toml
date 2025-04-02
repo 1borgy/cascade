@@ -1,0 +1,35 @@
+[package]
+name = "cascade_app"
+version = "0.3.0"
+edition = "2021"
+
+[[bin]]
+name = "cascade"
+path = "src/main.rs"
+
+[dependencies]
+cascade = { path = "../cascade" }
+clap = { version = "4.5.16", features = ["derive"] }
+dark-light = "1.0.0"
+directories = "5.0.1"
+enum-iterator = "1.4.1"
+fern = { version = "0.6.2", features = ["colored"] }
+hex-literal = "0.4.1"
+image = "0.24.0"
+indexmap = "2.7.0"
+log = "0.4.20"
+rfd = "0.12.1"
+ron = "0.8.1"
+serde = "1.0.193"
+thiserror = "1.0.50"
+time = { version = "0.3.30", features = ["local-offset", "formatting"] }
+tokio = { version = "1.40.0", features = ["fs", "io-util"] }
+toml = "0.8.8"
+
+[dependencies.iced]
+version = "0.13.1"
+default-features = false
+features = ["tokio", "lazy", "advanced", "image", "debug", "wgpu", "fira-sans"]
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12"

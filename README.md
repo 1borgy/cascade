@@ -1,198 +1,129 @@
 <div align="center">
-  <img src=".github/resources/banner.gif" width=75%>
+  <img src=".github/resources/banner.gif" width=65%>
   <div>
-    <code>🌊 | a thug pro trickset copier.</code>
+    <em>A bulk save modifier for THUG Pro.</em>
   </div>
 </div>
 
-# `📸 screenshots`<a id="screenshots"></a>
+## `📸 screenshots`<a id="screenshots"></a>
 
-![](.github/resources/screenshots.png)
+<img src=".github/resources/screenshot.png" width=49% /> <img src=".github/resources/screenshot2.png" width=49%/>
 
-# `⏬ download`<a id="download"></a>
+## `📖 table of contents`<a id="toc"></a>
 
-download `cascade.exe` from
-[here](https://github.com/1borgy/cascade/releases/latest).
+* [installation](#installation)
+* [usage](#usage)
+* [backups](#backups)
+* [contact](#contact)
+* [faq](#faq)
+* [shoutouts](#shoutouts)
+* [development](#development)
 
-# `🤠 usage`<a id="usage"></a>
+## `⏬ installation`<a id="installation"></a>
 
->⚠️  **warning** ⚠️
->
-> please make a manual backup of your saves! i've tested this along with a few community
-> members and have yet to observe any issues, but your results may vary, as cascade is
-> still experimental software.
+Download `cascade.exe` from [here](https://github.com/1borgy/cascade/releases/latest).
 
-cascade will automatically detect your THUG Pro installation folder if it is in
-`%localappdata%/THUG Pro/`. if you have it installed elsewhere, you will need to
-[configure cascade](#configuration).
+## `⚡️ usage`<a id="usage"></a>
 
-**using cascade is very easy:**
+> [!WARNING]
+> I highly recommend making a manual backup of your saves! Though `cascade` has been rigorously
+> tested against community CAS packs, the possibility of save corruption still exists.
 
-**one-** click "set trickset" to tell cascade which save's trickset you want to use.
+Upon opening Cascade, you will be greeted with three columns.
 
-**two-** click "copy trickset to saves" to copy that trickset to all of your saves.
+### `from`
 
-it will tell you how many tricksets were successfully copied - if cascade can't
-succesfully copy the trickset to a certain save, it won't touch that save file. this is
-typically the case with corrupted saves, or saves from other games (like THUG1 saves).
+The "from" column allows you to select the save to copy from. You may choose to copy trickset,
+scales, or both.
 
-if you have a save that is failing to be copied, or want to help contribute to cascade,
-you can [help the project](#help-me)!
+### `to`
 
-# `💾 backups`<a id="backups"></a>
+The "to" column allows you to select which saves to copy to.
 
-if you want to revert copying a trickset, or the saves were corrupted for some reason,
-cascade stores backups at `THUG Pro/.cascade/` every time it copies tricksets. each
-entry in this folder is marked with a date and time so you know when it was backed
-up. simply pick which backup you want to use and drag its contents into your
-`THUG Pro/Save/` folder.
+Cascade will automatically detect your save folder at `%localappdata%/THUG Pro/Save`.
+If you have it installed elsewhere, or want to copy saves to a different folder, you will need to
+select the desired folder manually.
 
-# `🙋 frequently asked questions`<a id="faq"></a>
+### `queue`
 
-## why do i get a message saying "SmartScreen prevented an unrecognized app from starting" when trying to run cascade?
+The "queue" column shows which save files are currently queued to be modified, as well as their
+most recent modification status. Upon pressing the start (▶️) button, all saves in the queue will
+be backed up then modified in-place.
 
-this message basically means that i don't have
-the certificate required to become a "recognized publisher".
+If modification of a save is successful, it will turn green. If modification of a save results in
+an error, it will turn red. If you encounter an error while modifying saves, please 
+[contact me](#contact).
 
-these certificates
-[cost hundreds or even thousands of dollars](https://signmycode.com/ev-code-signing), so
-i don't plan on ever getting one.
+> [!TIP]
+> Use `ctrl+-` and `ctrl+=` to resize the UI.
 
-## what does “\[... path\] is not set” mean?
+> [!TIP]
+> Create an empty file named `cascade.toml` in the same directory as the executable to use a
+> portable install. Otherwise, cascade will store files at `%localappdata%/cascade`.
 
-this means you are missing at least one of the path entries in the cascade config.
-see [configuration](#configuration).
+## `💾 backups`<a id="backups"></a>
 
-## how can i copy my trickset to only some saves?
+If you want to revert a cascade run, backups are stored at `%localappdata%/cascade/backup`.
+Simply pick which backup you want to use and drag its contents into your saves folder.
+Each entry in this folder is labeled with the date and time of modification.
 
-currently, you can make another folder, put the saves you want to copy in that folder,
-then [configure](#configuration) your `thugpro saves` path to that folder instead.
+## `📣 contact`<a id="contact"></a>
 
-## how can i use multiple tricksets and swap between them?
+Please direct any questions or concerns towards `@1borgy` on Discord. If you encounter an error,
+please send the cascade log file, which you may find at `%localappdata%/cascade/cascade.log`.
 
-i would recommend having a separate folder of tricksets and swapping between them with
-the “set trickset” button. you could also [configure](#configuration) your `trickset`
-path to swap between them, if that feels better for some reason.
+## `🙋 frequently asked questions`<a id="faq"></a>
 
-## why do the file modification times on my saves not change?
+### Why do I get a message saying "SmartScreen prevented an unrecognized app from starting" when trying to run cascade?
 
-during development, i found it annoying that copying tricksets would change the order
-your saves show up in the “load save” menu, so by default, cascade rewrites the file
-modification time to what it was before copying.
+To put it simply, this message means that I don't have the certificate required to become a "recognized publisher".
 
-i realize this probably shouldn't be default behavior, so please
-[yell at me](#feedback) if you want that to be configurable.
+These certificates [cost hundreds of dollars](https://signmycode.com/ev-code-signing), so I don't plan on getting one.
 
-## why do not all of my saves copy successfully?
+### Do I have to close THUG Pro to copy the trickset to my saves?
 
-if a save is not copied succesfully, it's likely either a corrupted save or a save from
-a different game (e.g. THUG1).
+Save files are reloaded when entering the "Load Skater" menu, so you do not have to relaunch.
 
-i tested a CAS pack with nearly 300 saves, and only one of them failed. the one that
-failed to copy crashed THUG Pro when i tried to open it, so it's safe to say that CAS
-is not a valid THUG Pro CAS anyways.
+### Why do the file modification times on my saves not change?
 
-## do i have to close thug pro to copy the trickset to my saves?
+This was a design decision I made during development, to preserve ordering of save files.
+If you'd like this to be configurable, please [contact me](#contact).
 
-from my testing, you don't need to close thug pro. the save files are re-loaded when
-loading a new skater.
+## `✨ shoutouts`<a id="shoutouts"></a>
 
-# `📢 you can help cascade!`<a id="help-me"></a>
+Cascade would not exist without the following people, so shoutout to them:
 
-please reach out to me on discord **("borgy" in most THPS servers)** with any
-questions or comments, especially if you have any issues getting cascade to work.
-
-if you run into an issue, please send me the cascade logs
-(you can find these at `THUG Pro/.cascade/cascade.log`) and any CAS that is failing so
-i can help diagnose the issue.
-
-i'd also love to hear general [feedback](#i-hate-cascade-it-sucks)! i already have a
-[few ideas for improvements](#thinking-emoji).
-
-## feedback 🤬<a id="i-hate-cascade-it-sucks"></a>
-
-```diff
-! i want a scale copier!
-! i want a save selector for trickset copying!
-! i want a cas randomizer! (so do i!)
-! i want rotating backups they take up too much room!
-! trickset copying is too slow!!! 🤬
-! i want a portable install!
-! i want a rotating log file!
-! i want a configurable source/destination folder for saves!
-
-+ what else do you want to see in cascade?
-+ how can the user interface be improved?
-+ is the UI's performance poor on your system?
-+ etc.
-```
-
-## things i've thought about 😔💭<a id="thinking-emoji"></a>
-
-see [github issues](https://github.com/1borgy/cascade/issues).
-
-# `⚙️ configuration`<a id="configuration"></a>
-
-## thugpro saves
-
-this path refers to the folder that cascade reads saves from and copies saves back
-to.
-
-by default, cascade autodetects THUG Pro's install folder if it exists at
-`%localappdata%/THUG Pro/` (if there is another commonly installed location
-[let me know](#help-me)!). 
-
-if your THUG Pro is installed elsewhere, you will need to tell cascade where to look
-for saves. click on the `config` tab and select the path for `thugpro saves`. this
-path should point to the `THUG Pro/Save/` folder, not the base `THUG Pro/` folder.
-
-## backups 
-
-this path refers to the folder that cascade stores backups in.
-
-by default, cascade will store backups in the `THUG Pro/.cascade/backup/` folder.
-
-## trickset
-
-this path refers to the file cascade uses as the reference trickset when copying a
-trickset to saves.
-
-by default, cascade will store the trickset at `THUG Pro/.cascade/trickset.SKA`.
-
-## portable install?
-
-by default, cascade stores all its required files in `THUG Pro/.cascade/`. 
-
-if you prefer a portable install, you can configure these paths to be in the same
-folder as the executable. 
-
-currently the cascade config (`cascade.toml`) cannot be moved from this folder, but
-that can change [if there is demand for it](#help-me)!
-
-# `✨💫 shoutouts 💫✨`<a id="shoutouts"></a>
-
-cascade would not exist without the following people, so shoutout to them:
-
-- **source** 🧠 for the great work on [castool](https://castool.xyz) and for giving me
+- **source** 🧠 for their great work on [castool](https://castool.xyz) and for giving me
   pointers regarding CAS format
 
-- **[@chc](https://github.com/chc)** 🧠 for the great work on the
+- **[@chc](https://github.com/chc)** 🧠 for their great work on the
   [save editor](http://save-editor.thmods.com/#/manage_save)
   and [THPS.API](https://github.com/chc/thps.api/tree/master)
 
 - **[@c4marilla](https://github.com/c4marilla)** 🦆 for being the first beta tester,
   making the project logo and banner, and being appointed cascade project manager ✨
 
-- **retro** 🦆 for being an early beta tester
+- **retro**, **judy**, and **f1shy** 🦆 for being beta testers
 
-- **cdot** 🛹 for releasing his giant cas pack, which i'm using for automated
-  integration testing
+- **cdot** 🛹 for releasing their CAS pack, which is used for automated integration testing
 
-- **[@wermipls](https://github.com/wermipls)** 🪱 for helping with github actions
+- **[@wermipls](https://github.com/wermipls)** 🪱 for helping with GitHub actions
 
-- **[@catppuccin](https://github.com/catppuccin/catppuccin)** 🐈‍⬛ for
-  [1] blessing my eyes while i waste away in vim and [2] being the color palette used as
-  a reference for cascade's themes
+- **[@catppuccin](https://github.com/catppuccin/catppuccin)** 🐈‍⬛ for providing cascade's color palette
 
-- **[@iced-rs](https://github.com/iced-rs/iced)** 🧊 for powering cascade's ui
-  and making me not hate frontend that much
+- **[@iced-rs](https://github.com/iced-rs/iced)** 🧊 for powering cascade's UI
+
+# `🛠️ development`<a id="development"></a>
+
+Building cascade requires nightly rust.
+
+```bash
+rustup toolchain install nightly
+rustup default nightly
+```
+
+To cross-compile for windows:
+
+```bash
+cargo build --target x86_64-pc-windows-gnu --release
+```
