@@ -127,3 +127,15 @@ To cross-compile for windows:
 ```bash
 cargo build --target x86_64-pc-windows-gnu --release
 ```
+
+To dump a cas:
+
+```bash
+cargo run -p cascade-cli dump -i .local/saves/docsgorl.SKA -o .local/docsgorl.ron
+```
+
+To run the UI:
+
+```bash
+cargo run -p cascade-app
+```
