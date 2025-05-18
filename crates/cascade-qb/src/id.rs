@@ -1,0 +1,45 @@
+use std::{
+    fmt::Debug,
+    io::{Read, Write},
+};
+
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+
+use crate::{Error, Kind};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Id {
+    None,
+    Checksum(u32),
+    Compress8(u8),
+    Compress16(u16),
+}
+
+impl Id {
+    pub fn read(
+        reader: &mut impl Read,
+        kind: Kind,
+        compressed_8: bool,
+        compressed_16: bool,
+    ) -> Result<Id, Error> {
+        Ok(if kind == Kind::None {
+            Id::None
+        } else if compressed_8 {
+            Id::Compress8(reader.read_u8()?)
+        } else if compressed_16 {
+            Id::Compress16(reader.read_u16::<LittleEndian>()?)
+        } else {
+            Id::Checksum(reader.read_u32::<LittleEndian>()?)
+        })
+    }
+
+    pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
+        match self {
+            Id::Checksum(val) => writer.write_u32::<LittleEndian>(*val)?,
+            Id::Compress8(val) => writer.write_u8(*val)?,
+            Id::Compress16(val) => writer.write_u16::<LittleEndian>(*val)?,
+            Id::None => (),
+        }
+        Ok(())
+    }
+}

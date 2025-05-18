@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/resources/banner.gif" width=65%>
+  <img src=".github/assets/banner.gif" width=65%>
   <div>
     <em>A bulk save modifier for THUG Pro.</em>
   </div>
@@ -7,7 +7,7 @@
 
 ## `📸 screenshots`<a id="screenshots"></a>
 
-<img src=".github/resources/screenshot.png" width=49% /> <img src=".github/resources/screenshot2.png" width=49%/>
+<img src=".github/assets/screenshot.png" width=49% /> <img src=".github/assets/screenshot2.png" width=49%/>
 
 ## `📖 table of contents`<a id="toc"></a>
 
@@ -119,7 +119,7 @@ Building cascade requires nightly rust.
 
 ```bash
 rustup toolchain install nightly
-rustup default nightly
+rustup override set nightly
 ```
 
 To cross-compile for windows:

@@ -1,0 +1,17 @@
+[package]
+name = "cascade-thugpro"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+cascade-crc = { workspace = true }
+cascade-dump = { workspace = true }
+cascade-lut = { workspace = true }
+cascade-qb = { workspace = true }
+
+byteorder = { workspace = true }
+count-write = { workspace = true }
+serde = { workspace = true }
+filetime = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
