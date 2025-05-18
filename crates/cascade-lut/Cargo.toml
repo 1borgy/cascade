@@ -1,0 +1,11 @@
+[package]
+name = "cascade-lut"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+cascade-qb = { workspace = true }
+
+ron = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

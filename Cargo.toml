@@ -1,3 +1,34 @@
 [workspace]
-members = ["cascade", "cascade_app"]
+members = ["crates/*"]
 resolver = "2"
+
+[workspace.dependencies]
+cascade-crc = { path = "crates/cascade-crc" }
+cascade-dump = { path = "crates/cascade-dump" }
+cascade-lut = { path = "crates/cascade-lut" }
+cascade-qb = { path = "crates/cascade-qb" }
+cascade-thugpro = { path = "crates/cascade-thugpro" }
+
+byteorder = "1.4.3"
+clap = { version = "4.5.16", features = ["derive"] }
+color-eyre = "0.6"
+count-write = "0.1.0"
+crc = "3.0.1"
+directories = "5.0.1"
+encoding_rs = "0.8.35"
+enum-iterator = "1.4.1"
+fern = { version = "0.6.2", features = ["colored"] }
+filetime = "0.2.21"
+hex-literal = "0.4.1"
+image = "0.24.0"
+indexmap = "2.7.0"
+log = "0.4.20"
+rand = "0.9.1"
+rfd = "0.12.1"
+ron = "0.8.1"
+serde = { version = "1.0.190", features = ["rc", "derive"] }
+serde_json = "1.0.140"
+thiserror = "1.0.50"
+time = { version = "0.3.30", features = ["local-offset", "formatting"] }
+tokio = { version = "1.40.0", features = ["fs", "io-util"] }
+toml = "0.8.8"
