@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use crate::Error;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Kind {
     None,
     Integer,

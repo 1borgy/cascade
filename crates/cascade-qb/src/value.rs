@@ -8,6 +8,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use crate::{Error, Kind, Structure};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Value {
     None,
     U8(u8),

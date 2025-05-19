@@ -44,7 +44,7 @@ fn local_appdata_dir() -> Result<PathBuf> {
     }
 }
 
-pub fn default_thug_pro_dir() -> Result<PathBuf> {
+pub fn default_thugpro_dir() -> Result<PathBuf> {
     // %localappdata%/THUG Pro/
     let path = local_appdata_dir().map(|dir| dir.join("THUG Pro"))?;
 
@@ -56,7 +56,7 @@ pub fn default_thug_pro_dir() -> Result<PathBuf> {
 
 pub fn default_saves_dir() -> Result<PathBuf> {
     // %localappdata%/THUG Pro/Save/
-    let path = default_thug_pro_dir().map(|dir| dir.join("Save"))?;
+    let path = default_thugpro_dir().map(|dir| dir.join("Save"))?;
 
     match path.is_dir() {
         true => Ok(path),

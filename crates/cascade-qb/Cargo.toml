@@ -7,3 +7,7 @@ edition = "2021"
 byteorder = { workspace = true }
 count-write = { workspace = true }
 thiserror = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde"]

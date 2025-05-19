@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 cascade-lut = { workspace = true }
 cascade-qb = { workspace = true }
-cascade-thugpro = { workspace = true }
+cascade-thugpro = { workspace = true, features = ["serde"] }
 
 clap = { workspace = true }
+color-eyre = { workspace = true }
+encoding_rs = { workspace = true }
 rand = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true }

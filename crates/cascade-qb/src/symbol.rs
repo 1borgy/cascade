@@ -12,6 +12,7 @@ const CHECKSUM_LOOKUP_MASK_8: u8 = 1 << 7;
 const CHECKSUM_LOOKUP_MASK_16: u8 = 1 << 6;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Symbol {
     pub kind: Kind,
     pub id: Id,

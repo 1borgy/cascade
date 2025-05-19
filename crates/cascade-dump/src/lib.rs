@@ -17,10 +17,10 @@ pub enum Id {
 impl From<&qb::Id> for Id {
     fn from(value: &qb::Id) -> Self {
         match value {
-            cascade_qb::Id::None => Id::None,
-            cascade_qb::Id::Checksum(v) => Id::Checksum(*v),
-            cascade_qb::Id::Compress8(v) => Id::Compress8(*v),
-            cascade_qb::Id::Compress16(v) => Id::Compress16(*v),
+            qb::Id::None => Id::None,
+            qb::Id::Checksum(v) => Id::Checksum(*v),
+            qb::Id::Compress8(v) => Id::Compress8(*v),
+            qb::Id::Compress16(v) => Id::Compress16(*v),
         }
     }
 }
@@ -53,26 +53,26 @@ pub enum Value {
 impl Value {
     fn new(value: &qb::Value, lut: &Lut) -> Self {
         match value {
-            cascade_qb::Value::None => Value::None,
-            cascade_qb::Value::U8(v) => Value::U8(*v),
-            cascade_qb::Value::U16(v) => Value::U16(*v),
-            cascade_qb::Value::I8(v) => Value::I8(*v),
-            cascade_qb::Value::I16(v) => Value::I16(*v),
-            cascade_qb::Value::I32(v) => Value::I32(*v),
-            cascade_qb::Value::F32(v) => Value::F32(*v),
-            cascade_qb::Value::ZeroInt => Value::ZeroInt,
-            cascade_qb::Value::ZeroFloat => Value::ZeroFloat,
-            cascade_qb::Value::String(v) => {
+            qb::Value::None => Value::None,
+            qb::Value::U8(v) => Value::U8(*v),
+            qb::Value::U16(v) => Value::U16(*v),
+            qb::Value::I8(v) => Value::I8(*v),
+            qb::Value::I16(v) => Value::I16(*v),
+            qb::Value::I32(v) => Value::I32(*v),
+            qb::Value::F32(v) => Value::F32(*v),
+            qb::Value::ZeroInt => Value::ZeroInt,
+            qb::Value::ZeroFloat => Value::ZeroFloat,
+            qb::Value::String(v) => {
                 let (name, _, _) = WINDOWS_1252.decode(&v);
                 Value::String(name.to_string())
             }
-            cascade_qb::Value::Pair(x, y) => Value::Pair(*x, *y),
-            cascade_qb::Value::Vector(x, y, z) => Value::Vector(*x, *y, *z),
-            cascade_qb::Value::Structure(v) => Value::Structure(Box::new(Structure::new(&v, &lut))),
-            cascade_qb::Value::Array(_, v) => {
+            qb::Value::Pair(x, y) => Value::Pair(*x, *y),
+            qb::Value::Vector(x, y, z) => Value::Vector(*x, *y, *z),
+            qb::Value::Structure(v) => Value::Structure(Box::new(Structure::new(&v, &lut))),
+            qb::Value::Array(_, v) => {
                 Value::Array(v.iter().map(|symbol| Value::new(&symbol, lut)).collect())
             }
-            cascade_qb::Value::Name(v) => Value::Name(lut.checksum.lookup(*v).cloned()),
+            qb::Value::Name(v) => Value::Name(lut.checksum.lookup(*v).cloned()),
         }
     }
 }
@@ -89,10 +89,10 @@ impl Symbol {
     pub fn new(symbol: &qb::Symbol, lut: &Lut) -> Self {
         Self {
             name: match symbol.id {
-                cascade_qb::Id::None => None,
-                cascade_qb::Id::Checksum(v) => lut.checksum.lookup(v).cloned(),
-                cascade_qb::Id::Compress8(v) => lut.compress.lookup8(v).cloned(),
-                cascade_qb::Id::Compress16(v) => lut.compress.lookup16(v).cloned(),
+                qb::Id::None => None,
+                qb::Id::Checksum(v) => lut.checksum.lookup(v).cloned(),
+                qb::Id::Compress8(v) => lut.compress.lookup8(v).cloned(),
+                qb::Id::Compress16(v) => lut.compress.lookup16(v).cloned(),
             },
             id: symbol.id.into(),
             value: Value::new(&symbol.value, lut),

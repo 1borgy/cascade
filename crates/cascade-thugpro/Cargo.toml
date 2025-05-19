@@ -11,7 +11,11 @@ cascade-qb = { workspace = true }
 
 byteorder = { workspace = true }
 count-write = { workspace = true }
-serde = { workspace = true }
 filetime = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
+
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde", "cascade-qb/serde"]

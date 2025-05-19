@@ -14,7 +14,7 @@ pub enum Error {
     UnknownFileExtension(String),
 
     #[error("symbol not found: {0}")]
-    SymbolNotFound(String),
+    SymbolNotFound(qb::Id),
 
     #[error("symbol not found: {0}")]
     ExpectedStructure(String, qb::Value),

@@ -6,13 +6,12 @@ use std::{
 use crate::{Error, Id, Kind, Symbol};
 
 #[derive(Debug, Clone)]
-pub struct Structure {
-    symbols: Vec<Symbol>,
-}
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Structure(Vec<Symbol>);
 
 impl Structure {
     pub fn new(symbols: Vec<Symbol>) -> Self {
-        Self { symbols }
+        Self(symbols)
     }
 
     pub fn read(reader: &mut impl Read) -> Result<Structure, Error> {
@@ -40,7 +39,7 @@ impl Structure {
     }
 
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
-        for symbol in &self.symbols {
+        for symbol in &self.0 {
             symbol.write(writer)?;
         }
 
@@ -58,18 +57,15 @@ impl Structure {
     }
 
     pub fn get(&self, id: Id) -> Option<&Symbol> {
-        self.symbols.iter().filter(|symbol| symbol.id == id).next()
+        self.0.iter().filter(|symbol| symbol.id == id).next()
     }
 
     pub fn get_mut(&mut self, id: Id) -> Option<&mut Symbol> {
-        self.symbols
-            .iter_mut()
-            .filter(|symbol| symbol.id == id)
-            .next()
+        self.0.iter_mut().filter(|symbol| symbol.id == id).next()
     }
 
     pub fn len(&self) -> usize {
-        self.symbols.len()
+        self.0.len()
     }
 
     pub fn insert(&mut self, symbol: Symbol) -> Option<Symbol> {
@@ -80,18 +76,18 @@ impl Structure {
                 Some(ret)
             }
             None => {
-                self.symbols.push(symbol);
+                self.0.push(symbol);
                 None
             }
         }
     }
 
     pub fn remove(&mut self, id: Id) {
-        self.symbols.retain(|symbol| symbol.id != id);
+        self.0.retain(|symbol| symbol.id != id);
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Symbol> {
-        self.symbols.iter()
+        self.0.iter()
     }
 }
 

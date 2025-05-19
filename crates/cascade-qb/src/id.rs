@@ -1,5 +1,5 @@
 use std::{
-    fmt::Debug,
+    fmt::{Debug, Display},
     io::{Read, Write},
 };
 
@@ -8,11 +8,18 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use crate::{Error, Kind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Id {
     None,
     Checksum(u32),
     Compress8(u8),
     Compress16(u16),
+}
+
+impl Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl Id {

@@ -11,9 +11,11 @@ cascade-thugpro = { path = "crates/cascade-thugpro" }
 
 byteorder = "1.4.3"
 clap = { version = "4.5.16", features = ["derive"] }
+color-eyre = "0.6"
 count-write = "0.1.0"
 crc = "3.0.1"
 directories = "5.0.1"
+encoding_rs = "0.8.35"
 enum-iterator = "1.4.1"
 fern = { version = "0.6.2", features = ["colored"] }
 filetime = "0.2.21"
