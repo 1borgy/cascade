@@ -203,6 +203,7 @@ fn main() -> color_eyre::Result<()> {
                                 front_logo: shirt_appearance.front_logo.clone(),
                                 back_logo: shirt_appearance.back_logo.clone(),
                                 elbowpads: shirt_appearance.elbowpads.clone(),
+                                sleeves: shirt_appearance.shoe_laces.clone(),
                                 eyes: acc_appearance.eyes.clone(),
                                 glasses: acc_appearance.glasses.clone(),
                                 skater_m_hands: acc_appearance.skater_m_hands.clone(),
