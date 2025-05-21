@@ -128,7 +128,7 @@ To cross-compile for windows:
 cargo build --target x86_64-pc-windows-gnu --release
 ```
 
-To dump a cas:
+To dump a CAS:
 
 ```bash
 cargo run -p cascade-cli dump -i .local/saves/docsgorl.SKA -o .local/docsgorl.ron
@@ -138,4 +138,10 @@ To run the UI:
 
 ```bash
 cargo run -p cascade-app
+```
+
+To create random CASes:
+
+```bash
+cargo run -p cascade-cli randomize-bulk --input-dir .local/saves --output-dir .local/rand --female -n 10
 ```
