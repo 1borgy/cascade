@@ -287,6 +287,7 @@ pub struct Appearance {
     pub skater_f_legs: Item,
     pub skater_m_lower_legs: Item,
     pub skater_f_lower_legs: Item,
+    pub kneepads: Item,
 
     pub shoes: Item,
     pub socks: Item,
@@ -364,6 +365,7 @@ impl Appearance {
             .modify(appearance, id::SKATER_M_LOWER_LEGS);
         self.skater_f_lower_legs
             .modify(appearance, id::SKATER_F_LOWER_LEGS);
+        self.kneepads.modify(appearance, id::KNEEPADS);
         self.shoes.modify(appearance, id::SHOES);
         self.socks.modify(appearance, id::SOCKS);
         self.shoe_laces.modify(appearance, id::SHOE_LACES);
@@ -452,6 +454,7 @@ impl TryFrom<Box<qb::Structure>> for Appearance {
             skater_f_legs: structure.get(id::SKATER_F_LEGS).cloned().into(),
             skater_m_lower_legs: structure.get(id::SKATER_M_LOWER_LEGS).cloned().into(),
             skater_f_lower_legs: structure.get(id::SKATER_F_LOWER_LEGS).cloned().into(),
+            kneepads: structure.get(id::KNEEPADS).cloned().into(),
             shoes: structure.get(id::SHOES).cloned().into(),
             socks: structure.get(id::SOCKS).cloned().into(),
             shoe_laces: structure.get(id::SHOE_LACES).cloned().into(),

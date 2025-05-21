@@ -52,6 +52,7 @@ pub const SKATER_M_LEGS: qb::Id = qb::Id::Compress8(3);
 pub const SKATER_F_LEGS: qb::Id = qb::Id::Compress8(12);
 pub const SKATER_M_LOWER_LEGS: qb::Id = qb::Id::Compress8(0);
 pub const SKATER_F_LOWER_LEGS: qb::Id = qb::Id::Compress8(35);
+pub const KNEEPADS: qb::Id = qb::Id::Compress8(7);
 
 pub const SHOES: qb::Id = qb::Id::Compress8(176);
 pub const SOCKS: qb::Id = qb::Id::Compress8(8);
