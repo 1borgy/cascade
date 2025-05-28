@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/resources/banner.gif" width=65%>
+  <img src=".github/assets/banner.gif" width=65%>
   <div>
     <em>A bulk save modifier for THUG Pro.</em>
   </div>
@@ -7,7 +7,7 @@
 
 ## `📸 screenshots`<a id="screenshots"></a>
 
-<img src=".github/resources/screenshot.png" width=49% /> <img src=".github/resources/screenshot2.png" width=49%/>
+<img src=".github/assets/screenshot.png" width=49% /> <img src=".github/assets/screenshot2.png" width=49%/>
 
 ## `📖 table of contents`<a id="toc"></a>
 
@@ -119,11 +119,29 @@ Building cascade requires nightly rust.
 
 ```bash
 rustup toolchain install nightly
-rustup default nightly
+rustup override set nightly
 ```
 
 To cross-compile for windows:
 
 ```bash
 cargo build --target x86_64-pc-windows-gnu --release
+```
+
+To dump a CAS:
+
+```bash
+cargo run -p cascade-cli dump -i .local/saves/docsgorl.SKA -o .local/docsgorl.ron
+```
+
+To run the UI:
+
+```bash
+cargo run -p cascade-app
+```
+
+To create random CASes:
+
+```bash
+cargo run -p cascade-cli randomize-bulk --input-dir .local/saves --output-dir .local/rand --female -n 10
 ```

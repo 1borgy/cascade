@@ -1,0 +1,18 @@
+[package]
+name = "cascade-cli"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+cascade-lut = { workspace = true }
+cascade-qb = { workspace = true }
+cascade-thugpro = { workspace = true, features = ["serde"] }
+
+clap = { workspace = true }
+color-eyre = { workspace = true }
+encoding_rs = { workspace = true }
+rand = { workspace = true }
+ron = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

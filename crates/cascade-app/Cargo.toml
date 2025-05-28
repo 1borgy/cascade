@@ -1,0 +1,36 @@
+[package]
+name = "cascade-app"
+version = "0.3.0"
+edition = "2021"
+
+[[bin]]
+name = "cascade"
+path = "src/main.rs"
+
+[dependencies]
+cascade-qb = { workspace = true }
+cascade-thugpro = { workspace = true }
+
+clap = { workspace = true }
+directories = { workspace = true }
+enum-iterator = { workspace = true }
+fern = { workspace = true }
+hex-literal = { workspace = true }
+image = { workspace = true }
+indexmap = { workspace = true }
+log = { workspace = true }
+rfd = { workspace = true }
+ron = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+
+[dependencies.iced]
+version = "0.13.1"
+default-features = false
+features = ["tokio", "image", "debug", "wgpu"]
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12"
