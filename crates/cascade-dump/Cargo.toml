@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 cascade-lut = { workspace = true }
 cascade-qb = { workspace = true }
+cascade-save = { workspace = true, features = ["serde"] }
 
 encoding_rs = { workspace = true }
 serde = { workspace = true }

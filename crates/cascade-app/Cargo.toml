@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 cascade-qb = { workspace = true }
+cascade-save = { workspace = true }
 cascade-thugpro = { workspace = true }
 
 clap = { workspace = true }

@@ -1,6 +1,7 @@
 use std::{io, path::PathBuf, result};
 
 use cascade_qb as qb;
+use cascade_save as save;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum Error {
@@ -9,6 +10,9 @@ pub enum Error {
 
     #[error("qb error: {0}")]
     Qb(#[from] qb::Error),
+
+    #[error("save error: {0}")]
+    Save(#[from] save::Error),
 
     #[error("unknown save file extension \"{0}\"")]
     UnknownFileExtension(String),

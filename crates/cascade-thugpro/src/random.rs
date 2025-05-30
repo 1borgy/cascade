@@ -4,13 +4,14 @@ use std::{
 };
 
 use cascade_qb as qb;
+use cascade_save as save;
 use encoding_rs::WINDOWS_1252;
 use rand::seq::IndexedRandom;
 
-use crate::{Cas, Result, cas, id, save};
+use crate::{Cas, Entry, Result, cas, id};
 
 pub fn randomize(
-    entries: &Vec<save::Entry>,
+    entries: &Vec<Entry>,
     output_dir: impl AsRef<Path>,
     name: impl AsRef<str>,
     female: bool,
@@ -21,12 +22,17 @@ pub fn randomize(
     let mut rng = rand::rng();
 
     let base_entry = entries.choose(&mut rng).unwrap().clone();
-    let mut base_save = save::Save::read_from(&base_entry)?;
+    let mut base_save = save::Save::read(&mut base_entry.reader()?)?;
     let base_cas = Cas::try_from(base_save.clone())?;
 
     let cases = entries
         .into_iter()
-        .filter_map(|entry| save::Save::read_from(&entry).ok())
+        .filter_map(|entry| {
+            entry
+                .reader()
+                .ok()
+                .and_then(|mut reader| save::Save::read(&mut reader).ok())
+        })
         .filter_map(|save| Cas::try_from(save).ok())
         .filter(|save| match save.summary.is_male {
             // Female cas
@@ -150,14 +156,14 @@ pub fn randomize(
     let output_path = PathBuf::from(output_dir).join(format!("{}.SKA", name));
     fs::File::create(&output_path)?;
 
-    let output_entry = save::Entry::at_path(&output_path)?;
-    base_save.write_to(&output_entry)?;
+    let output_entry = Entry::at_path(&output_path)?;
+    base_save.write(&mut output_entry.writer()?)?;
 
     Ok(())
 }
 
 pub fn randomize_bulk(
-    entries: &Vec<save::Entry>,
+    entries: &Vec<Entry>,
     output_dir: impl AsRef<Path>,
     number: usize,
     female: bool,

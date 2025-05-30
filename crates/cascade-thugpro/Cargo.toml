@@ -8,6 +8,7 @@ cascade-crc = { workspace = true }
 cascade-dump = { workspace = true }
 cascade-lut = { workspace = true }
 cascade-qb = { workspace = true }
+cascade-save = { workspace = true }
 
 byteorder = { workspace = true }
 count-write = { workspace = true }
@@ -20,4 +21,4 @@ thiserror = { workspace = true }
 serde = { workspace = true, optional = true }
 
 [features]
-serde = ["dep:serde", "cascade-qb/serde"]
+serde = ["dep:serde", "cascade-qb/serde", "cascade-save/serde"]

@@ -25,5 +25,5 @@ pub fn entries() -> Vec<thugpro::Entry> {
         .join("assets")
         .join("saves");
 
-    thugpro::save::find_entries(&saves_dir).expect("could not find saves directory")
+    thugpro::entry::find_entries(&saves_dir).expect("could not find saves directory")
 }

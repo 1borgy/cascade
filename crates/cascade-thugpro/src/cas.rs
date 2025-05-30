@@ -1,6 +1,7 @@
 use cascade_qb as qb;
+use cascade_save as save;
 
-use crate::{Error, Result, id, save};
+use crate::{Error, Result, id};
 
 fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> Result<qb::Symbol> {
     Ok(parent.get(id).ok_or(Error::SymbolNotFound(id))?.clone())
