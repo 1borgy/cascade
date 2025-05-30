@@ -1,4 +1,4 @@
-use std::{fmt::Debug, io};
+use std::{fmt::Debug, io, result};
 
 use crate::Value;
 
@@ -25,3 +25,5 @@ impl From<io::Error> for Error {
         Self::Io(value.kind())
     }
 }
+
+pub type Result<T, E = Error> = result::Result<T, E>;

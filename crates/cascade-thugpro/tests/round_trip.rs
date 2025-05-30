@@ -4,6 +4,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use cascade_save as save;
 use cascade_thugpro as thugpro;
 mod common;
 
@@ -56,6 +57,8 @@ fn diff_save_files(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) 
 }
 
 fn round_trip_save_file(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) -> bool {
+    let reader = input_entry.reader().unwrap();
+
     let input_save = thugpro::Save::read_from(input_entry).expect("could not load input save");
 
     input_save

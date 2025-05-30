@@ -7,7 +7,8 @@ use std::{
     sync::Arc,
 };
 
-use cascade_thugpro::{self as thugpro, save};
+use cascade_save as save;
+use cascade_thugpro as thugpro;
 use iced::{
     alignment::Vertical,
     font::Weight,
@@ -36,8 +37,11 @@ pub enum Error {
     #[error("tasks error: {0}")]
     Tasks(#[from] tasks::Error),
 
-    #[error("thug pro save error: {0}")]
+    #[error("thug pro error: {0}")]
     ThugPro(#[from] thugpro::Error),
+
+    #[error("save error: {0}")]
+    Save(#[from] save::Error),
 
     #[error("error spawning task")]
     Task,
@@ -71,7 +75,7 @@ pub struct Components {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    LoadedCandidates(Result<IndexMap<save::Entry, bool>>),
+    LoadedCandidates(Result<IndexMap<thugpro::Entry, bool>>),
     LoadedSource(Result<thugpro::Cas>),
 
     PickSource,
@@ -82,13 +86,13 @@ pub enum Message {
     ClosedSavesDirDialog,
 
     ToggleSelectAll,
-    ToggleSelection(save::Entry),
+    ToggleSelection(thugpro::Entry),
     ToggleTricksetComponent(bool),
     ToggleScalesComponent(bool),
 
     Start,
     PreProcessDone(Result<(Arc<thugpro::Cas>, PathBuf)>),
-    EntryProcessed(save::Entry, Result<()>),
+    EntryProcessed(thugpro::Entry, Result<()>),
 }
 
 #[derive(Debug, Clone)]
@@ -107,12 +111,12 @@ pub struct Dashboard {
     default_selection: bool,
     enabled: bool,
 
-    source_entry: Option<save::Entry>,
+    source_entry: Option<thugpro::Entry>,
     source: Option<thugpro::Cas>,
 
-    candidates: IndexMap<save::Entry, bool>,
+    candidates: IndexMap<thugpro::Entry, bool>,
     components: Components,
-    queue: IndexMap<save::Entry, Status>,
+    queue: IndexMap<thugpro::Entry, Status>,
 
     warning_message: Option<String>,
 }
@@ -128,7 +132,7 @@ impl Dashboard {
         scales: bool,
     ) -> (Self, Task<Message>) {
         let source_entry = source_path
-            .map(|path| save::Entry::at_path(path).ok())
+            .map(|path| thugpro::Entry::at_path(path).ok())
             .flatten();
 
         let tasks = Task::batch(vec![
@@ -219,7 +223,7 @@ impl Dashboard {
 
             Message::PickSource => (Task::perform(pick_source(), Message::SourcePicked), None),
 
-            Message::SourcePicked(Some(path)) => match save::Entry::at_path(path.clone()) {
+            Message::SourcePicked(Some(path)) => match thugpro::Entry::at_path(path.clone()) {
                 Ok(entry) => {
                     self.source_entry = Some(entry.clone());
                     (
@@ -550,23 +554,28 @@ async fn pick_source() -> Option<PathBuf> {
     )
 }
 
-async fn load_source(entry: save::Entry) -> Result<thugpro::Cas> {
-    let content = tokio::spawn(async move { thugpro::Save::read_from(&entry) })
-        .await
-        .map_err(|_| Error::Task)??;
-
-    let cas = thugpro::Cas::try_from(content)?;
+async fn _load_source(entry: thugpro::Entry) -> Result<thugpro::Cas> {
+    let save = save::Save::read(&mut entry.reader()?)?;
+    let cas = thugpro::Cas::try_from(save)?;
 
     Ok(cas)
+}
+
+async fn load_source(entry: thugpro::Entry) -> Result<thugpro::Cas> {
+    let source = tokio::spawn(async move { _load_source(entry).await })
+        .await
+        .map_err(|_| Error::Task)?;
+
+    source
 }
 
 async fn load_candidates(
     saves_dir: Option<impl AsRef<Path>>,
     selections: Selections,
     default_selection: bool,
-) -> Result<IndexMap<save::Entry, bool>> {
+) -> Result<IndexMap<thugpro::Entry, bool>> {
     let saves_dir = saves_dir.ok_or(Error::NoSavesDir)?;
-    let entries = save::find_entries(saves_dir)?;
+    let entries = thugpro::entry::find_entries(saves_dir)?;
 
     log::info!("found {} saves", entries.len());
 
@@ -693,7 +702,7 @@ async fn pre_process<P: AsRef<Path>>(
 }
 
 async fn process_entry<P: AsRef<Path>>(
-    entry: save::Entry,
+    entry: thugpro::Entry,
     backup_dir: P,
     transform: Arc<thugpro::Cas>,
 ) -> Result<()> {
@@ -707,10 +716,10 @@ async fn process_entry<P: AsRef<Path>>(
     log::info!("backing up {:?} to {:?}", filepath, backup_filepath);
     fs::copy(&filepath, &backup_filepath).await?;
 
-    let mut save = thugpro::Save::read_from(&entry)?;
+    let mut save = save::Save::read(&mut entry.reader()?)?;
 
     transform.modify(&mut save)?;
-    save.write_to(&entry)?;
+    save.write(&mut entry.writer()?)?;
 
     log::info!("overwrote save at {:?}", filepath);
 

@@ -1,0 +1,17 @@
+[package]
+name = "cascade-save"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+cascade-crc = { workspace = true }
+cascade-qb = { workspace = true }
+
+byteorder = { workspace = true }
+count-write = { workspace = true }
+thiserror = { workspace = true }
+
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde", "cascade-qb/serde"]

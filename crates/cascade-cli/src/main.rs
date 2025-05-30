@@ -1,6 +1,8 @@
 use std::{fmt::Debug, fs::File, io::Write, path::PathBuf};
 
+use cascade_dump as dump;
 use cascade_lut::{self as lut, Lut};
+use cascade_save::Save;
 use cascade_thugpro as thugpro;
 use clap::{Args, Parser, Subcommand};
 
@@ -64,13 +66,13 @@ fn main() -> color_eyre::Result<()> {
 
     match command {
         Command::Dump { input, output } => {
-            let entry = thugpro::save::Entry::at_path(&input).unwrap();
-            let save = thugpro::save::Save::read_from(&entry).unwrap();
+            let entry = thugpro::Entry::at_path(&input)?;
+            let save = Save::read(&mut entry.reader()?)?;
             let lut = Lut {
-                checksum: lut::Checksum::load().unwrap(),
-                compress: thugpro::lut::load_compress().unwrap(),
+                checksum: lut::Checksum::load()?,
+                compress: thugpro::lut::load_compress()?,
             };
-            let dump = thugpro::Dump::new(&save, &lut);
+            let dump = dump::Save::new(&save, &lut);
 
             let mut file = File::create(output).unwrap();
             let contents =
@@ -85,7 +87,7 @@ fn main() -> color_eyre::Result<()> {
             name,
             female,
         } => {
-            let entries = thugpro::save::find_entries(input_dir).unwrap();
+            let entries = thugpro::entry::find_entries(input_dir).unwrap();
             thugpro::random::randomize(&entries, output_dir, name, female)?;
 
             Ok(())
@@ -96,7 +98,7 @@ fn main() -> color_eyre::Result<()> {
             number,
             female,
         } => {
-            let entries = thugpro::save::find_entries(input_dir).unwrap();
+            let entries = thugpro::entry::find_entries(input_dir).unwrap();
             thugpro::random::randomize_bulk(&entries, output_dir, number, female)?;
 
             Ok(())

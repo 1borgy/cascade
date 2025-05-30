@@ -1,5 +1,6 @@
 use cascade_lut::Lut;
 use cascade_qb as qb;
+use cascade_save as save;
 use encoding_rs::WINDOWS_1252;
 use serde::{Deserialize, Serialize};
 
@@ -111,5 +112,25 @@ impl Structure {
             .collect();
 
         Self(symbols)
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Save {
+    #[allow(dead_code)]
+    header: save::Header,
+    #[allow(dead_code)]
+    summary: Structure,
+    #[allow(dead_code)]
+    data: Structure,
+}
+
+impl Save {
+    pub fn new(file: &save::Save, lut: &Lut) -> Self {
+        Self {
+            header: file.header.clone(),
+            summary: Structure::new(&*file.summary, lut),
+            data: Structure::new(&*file.data, lut),
+        }
     }
 }
