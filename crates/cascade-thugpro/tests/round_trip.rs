@@ -57,12 +57,12 @@ fn diff_save_files(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) 
 }
 
 fn round_trip_save_file(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) -> bool {
-    let reader = input_entry.reader().unwrap();
+    let mut input_reader = input_entry.reader().unwrap();
+    let input_save = save::Save::read(&mut input_reader).expect("could not load input save");
 
-    let input_save = thugpro::Save::read_from(input_entry).expect("could not load input save");
-
+    let mut output_writer = output_entry.writer().unwrap();
     input_save
-        .write_to(output_entry)
+        .write(&mut output_writer)
         .expect("could not write output save");
 
     diff_save_files(input_entry, output_entry)
