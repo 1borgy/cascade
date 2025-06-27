@@ -3,8 +3,8 @@ use cascade_save as save;
 
 use crate::{Error, Result, id};
 
-fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> Result<qb::Symbol> {
-    Ok(parent.get(id).ok_or(Error::SymbolNotFound(id))?.clone())
+fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> Result<&qb::Symbol> {
+    Ok(parent.get(id).ok_or(Error::SymbolNotFound(id))?)
 }
 
 fn expect_symbol_mut(parent: &mut Box<qb::Structure>, id: qb::Id) -> Result<&mut qb::Symbol> {
@@ -12,7 +12,7 @@ fn expect_symbol_mut(parent: &mut Box<qb::Structure>, id: qb::Id) -> Result<&mut
 }
 
 // expect symbol and expect structure
-fn expect_structure(parent: Box<qb::Structure>, id: qb::Id) -> Result<Box<qb::Structure>> {
+fn expect_structure(parent: &Box<qb::Structure>, id: qb::Id) -> Result<&Box<qb::Structure>> {
     let symbol = expect_symbol(&parent, id)?;
     Ok(symbol.value.try_as_structure()?)
 }
@@ -73,13 +73,13 @@ pub struct Cas {
     pub data: Data,
 }
 
-impl TryFrom<save::Save> for Cas {
+impl TryFrom<&save::Save> for Cas {
     type Error = Error;
 
-    fn try_from(save: save::Save) -> Result<Self> {
+    fn try_from(save: &save::Save) -> Result<Self> {
         Ok(Self {
-            summary: Summary::try_from(save.summary)?,
-            data: Data::try_from(save.data)?,
+            summary: Summary::try_from(&save.summary)?,
+            data: Data::try_from(&save.data)?,
         })
     }
 }
@@ -119,10 +119,10 @@ impl Summary {
     }
 }
 
-impl TryFrom<Box<qb::Structure>> for Summary {
+impl TryFrom<&Box<qb::Structure>> for Summary {
     type Error = Error;
 
-    fn try_from(summary: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(summary: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
             total_goals_complete: summary.get(id::TOTAL_GOALS_COMPLETE).cloned().into(),
             total_goals_possible: summary.get(id::TOTAL_GOALS_POSSIBLE).cloned().into(),
@@ -142,19 +142,13 @@ pub struct Data {
     pub story_skater: StorySkater,
 }
 
-impl TryFrom<Box<qb::Structure>> for Data {
+impl TryFrom<&Box<qb::Structure>> for Data {
     type Error = Error;
 
-    fn try_from(data: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(data: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
-            custom_skater: CustomSkater::try_from(expect_structure(
-                Box::clone(&data),
-                id::CUSTOM_SKATER,
-            )?)?,
-            story_skater: StorySkater::try_from(expect_structure(
-                Box::clone(&data),
-                id::STORY_SKATER,
-            )?)?,
+            custom_skater: CustomSkater::try_from(expect_structure(data, id::CUSTOM_SKATER)?)?,
+            story_skater: StorySkater::try_from(expect_structure(data, id::STORY_SKATER)?)?,
         })
     }
 }
@@ -177,10 +171,10 @@ pub struct CustomSkater {
     pub custom: Custom,
 }
 
-impl TryFrom<Box<qb::Structure>> for CustomSkater {
+impl TryFrom<&Box<qb::Structure>> for CustomSkater {
     type Error = Error;
 
-    fn try_from(custom_skater: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(custom_skater: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
             custom: Custom::try_from(expect_structure(custom_skater, id::CUSTOM)?)?,
         })
@@ -202,15 +196,12 @@ pub struct Custom {
     pub info: Info,
 }
 
-impl TryFrom<Box<qb::Structure>> for Custom {
+impl TryFrom<&Box<qb::Structure>> for Custom {
     type Error = Error;
 
-    fn try_from(custom: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(custom: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
-            appearance: Appearance::try_from(expect_structure(
-                Box::clone(&custom),
-                id::APPEARANCE,
-            )?)?,
+            appearance: Appearance::try_from(expect_structure(custom, id::APPEARANCE)?)?,
             info: Info::try_from(expect_structure(custom, id::INFO)?)?,
         })
     }
@@ -233,10 +224,10 @@ pub struct Info {
     pub specials: Item,
 }
 
-impl TryFrom<Box<qb::Structure>> for Info {
+impl TryFrom<&Box<qb::Structure>> for Info {
     type Error = Error;
 
-    fn try_from(info: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(info: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
             trick_mapping: info.get(id::TRICK_MAPPING).cloned().into(),
             specials: info.get(id::SPECIALS).cloned().into(),
@@ -420,10 +411,10 @@ impl Appearance {
     }
 }
 
-impl TryFrom<Box<qb::Structure>> for Appearance {
+impl TryFrom<&Box<qb::Structure>> for Appearance {
     type Error = Error;
 
-    fn try_from(structure: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(structure: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
             body_shape: structure.get(id::BODY_SHAPE).cloned().into(),
             body: structure.get(id::BODY).cloned().into(),
@@ -498,10 +489,10 @@ pub struct StorySkater {
     pub tricks: Item,
 }
 
-impl TryFrom<Box<qb::Structure>> for StorySkater {
+impl TryFrom<&Box<qb::Structure>> for StorySkater {
     type Error = Error;
 
-    fn try_from(structure: Box<qb::Structure>) -> Result<Self> {
+    fn try_from(structure: &Box<qb::Structure>) -> Result<Self> {
         Ok(Self {
             tricks: structure.get(id::TRICKS).cloned().into(),
         })

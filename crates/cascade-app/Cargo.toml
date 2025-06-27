@@ -8,6 +8,7 @@ name = "cascade"
 path = "src/main.rs"
 
 [dependencies]
+cascade-backend = { workspace = true }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
 cascade-thugpro = { workspace = true }
@@ -16,7 +17,6 @@ clap = { workspace = true }
 directories = { workspace = true }
 enum-iterator = { workspace = true }
 fern = { workspace = true }
-hex-literal = { workspace = true }
 image = { workspace = true }
 indexmap = { workspace = true }
 log = { workspace = true }

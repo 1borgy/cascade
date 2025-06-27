@@ -14,7 +14,7 @@ impl Structure {
         Self(symbols)
     }
 
-    pub fn read(reader: &mut impl Read) -> Result<Structure, Error> {
+    pub fn read(reader: &mut impl Read) -> Result<Self, Error> {
         let mut symbols = vec![];
 
         while {

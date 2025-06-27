@@ -9,10 +9,12 @@ cascade-lut = { workspace = true }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
 cascade-thugpro = { workspace = true, features = ["serde"] }
+cascade-wad = { workspace = true }
 
 clap = { workspace = true }
 color-eyre = { workspace = true }
 encoding_rs = { workspace = true }
+env_logger = { workspace = true }
 rand = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true }

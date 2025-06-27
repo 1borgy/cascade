@@ -1,9 +1,15 @@
-use std::{fmt::Debug, fs::File, io::Write, path::PathBuf};
+use std::{
+    fmt::Debug,
+    fs::{self, File},
+    io::{BufReader, Write},
+    path::PathBuf,
+};
 
 use cascade_dump as dump;
 use cascade_lut::{self as lut, Lut};
 use cascade_save::Save;
 use cascade_thugpro as thugpro;
+use cascade_wad::{hed, wad};
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -51,18 +57,33 @@ enum Command {
         #[arg(long)]
         female: bool,
     },
+    Hed {
+        #[arg(long)]
+        input: PathBuf,
+    },
+    Wad {
+        #[arg(long)]
+        hed: PathBuf,
+
+        #[arg(long)]
+        wad: PathBuf,
+
+        #[arg(long)]
+        output: PathBuf,
+    },
 }
 
 #[derive(Debug, Args)]
 struct GlobalOpts {}
 
 fn main() -> color_eyre::Result<()> {
-    color_eyre::install()?;
-
     let App {
         global: _global,
         command,
     } = App::parse();
+
+    color_eyre::install()?;
+    env_logger::init();
 
     match command {
         Command::Dump { input, output } => {
@@ -100,6 +121,25 @@ fn main() -> color_eyre::Result<()> {
         } => {
             let entries = thugpro::entry::find_entries(input_dir).unwrap();
             thugpro::random::randomize_bulk(&entries, output_dir, number, female)?;
+
+            Ok(())
+        }
+        Command::Hed { input } => {
+            let file = fs::File::open(input)?;
+            let mut reader = BufReader::new(file);
+
+            let file = hed::File::read(&mut reader)?;
+            for entry in file.entries {
+                println!("{:?}", entry);
+            }
+
+            Ok(())
+        }
+        Command::Wad { hed, wad, output } => {
+            let hed = hed::File::read(&mut BufReader::new(fs::File::open(hed)?))?;
+            let mut wad = fs::File::open(wad)?;
+
+            wad::extract(hed, &mut wad, output)?;
 
             Ok(())
         }

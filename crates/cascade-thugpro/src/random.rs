@@ -23,7 +23,7 @@ pub fn randomize(
 
     let base_entry = entries.choose(&mut rng).unwrap().clone();
     let mut base_save = save::Save::read(&mut base_entry.reader()?)?;
-    let base_cas = Cas::try_from(base_save.clone())?;
+    let base_cas = Cas::try_from(&base_save)?;
 
     let cases = entries
         .into_iter()
@@ -33,7 +33,7 @@ pub fn randomize(
                 .ok()
                 .and_then(|mut reader| save::Save::read(&mut reader).ok())
         })
-        .filter_map(|save| Cas::try_from(save).ok())
+        .filter_map(|save| Cas::try_from(&save).ok())
         .filter(|save| match save.summary.is_male {
             // Female cas
             cas::Item::Present(qb::Symbol {

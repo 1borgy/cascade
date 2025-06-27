@@ -10,6 +10,7 @@ cascade-lut = { path = "crates/cascade-lut" }
 cascade-qb = { path = "crates/cascade-qb" }
 cascade-save = { path = "crates/cascade-save" }
 cascade-thugpro = { path = "crates/cascade-thugpro" }
+cascade-wad = { path = "crates/cascade-wad" }
 
 byteorder = "1.4.3"
 clap = { version = "4.5.16", features = ["derive"] }
@@ -19,9 +20,9 @@ crc = "3.0.1"
 directories = "5.0.1"
 encoding_rs = "0.8.35"
 enum-iterator = "1.4.1"
+env_logger = "0.11.6"
 fern = { version = "0.6.2", features = ["colored"] }
 filetime = "0.2.21"
-hex-literal = "0.4.1"
 image = "0.24.0"
 indexmap = "2.7.0"
 log = "0.4.20"

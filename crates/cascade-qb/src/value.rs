@@ -134,7 +134,7 @@ impl Value {
         Ok(())
     }
 
-    pub fn try_as_structure(self) -> Result<Box<Structure>, Error> {
+    pub fn try_as_structure(&self) -> Result<&Box<Structure>, Error> {
         match self {
             Value::Structure(value) => Ok(value),
             value => Err(Error::ExpectedValueType(

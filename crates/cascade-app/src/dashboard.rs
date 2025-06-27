@@ -12,7 +12,7 @@ use cascade_thugpro as thugpro;
 use iced::{
     alignment::Vertical,
     font::Weight,
-    widget::{button, checkbox, container, scrollable, text, tooltip},
+    widget::{button, checkbox, combo_box, container, scrollable, text, tooltip},
     Font, Length, Task,
 };
 use indexmap::IndexMap;
@@ -93,6 +93,8 @@ pub enum Message {
     Start,
     PreProcessDone(Result<(Arc<thugpro::Cas>, PathBuf)>),
     EntryProcessed(thugpro::Entry, Result<()>),
+
+    ComboBoxSelected(String),
 }
 
 #[derive(Debug, Clone)]
@@ -119,6 +121,9 @@ pub struct Dashboard {
     queue: IndexMap<thugpro::Entry, Status>,
 
     warning_message: Option<String>,
+
+    combo_box_state: combo_box::State<String>,
+    combo_box_selection: Option<String>,
 }
 
 impl Dashboard {
@@ -157,6 +162,8 @@ impl Dashboard {
             default_selection,
             components: Components { scales, trickset },
             warning_message: None,
+            combo_box_state: combo_box::State::new(Vec::new()),
+            combo_box_selection: None,
         };
 
         (dashboard, tasks)
@@ -211,18 +218,21 @@ impl Dashboard {
                 self.notify(format!("error loading source: {}", err));
                 (Task::none(), None)
             }
-
             Message::LoadedCandidates(Ok(entries)) => {
                 self.candidates = entries;
+                self.combo_box_state = combo_box::State::new(
+                    self.candidates
+                        .iter()
+                        .map(|(entry, _)| entry.name.clone())
+                        .collect(),
+                );
                 (Task::none(), None)
             }
             Message::LoadedCandidates(Err(err)) => {
                 self.notify(format!("error loading selections: {}", err));
                 (Task::none(), None)
             }
-
             Message::PickSource => (Task::perform(pick_source(), Message::SourcePicked), None),
-
             Message::SourcePicked(Some(path)) => match thugpro::Entry::at_path(path.clone()) {
                 Ok(entry) => {
                     self.source_entry = Some(entry.clone());
@@ -237,7 +247,6 @@ impl Dashboard {
                 }
             },
             Message::SourcePicked(None) => (Task::none(), None),
-
             Message::ToggleSelectAll => {
                 self.default_selection = !self.default_selection;
 
@@ -253,24 +262,20 @@ impl Dashboard {
                     )),
                 )
             }
-
             Message::ToggleSelection(entry) => {
                 if let Some(selected) = self.candidates.get_mut(&entry) {
                     *selected = !*selected;
                 }
                 (Task::none(), Some(Event::SetSelections(self.selections())))
             }
-
             Message::ToggleTricksetComponent(selected) => {
                 self.components.trickset = selected;
                 (Task::none(), Some(Event::SetTrickset(selected)))
             }
-
             Message::ToggleScalesComponent(selected) => {
                 self.components.scales = selected;
                 (Task::none(), Some(Event::SetScales(selected)))
             }
-
             Message::Start => match &self.source {
                 Some(source) => {
                     if self.candidates.values().any(|selected| *selected) {
@@ -360,6 +365,10 @@ impl Dashboard {
                     self.enabled = true;
                 }
 
+                (Task::none(), None)
+            }
+            Message::ComboBoxSelected(value) => {
+                self.combo_box_selection = Some(value);
                 (Task::none(), None)
             }
         }
@@ -470,7 +479,20 @@ impl Dashboard {
                             .on_press_maybe(self.enabled.then_some(Message::PickSource)),
                     )
                     .push(heading("from"))
-                    .push(self.view_source_info()),
+                    // .push(self.view_source_info())
+                    .push(
+                        combo_box(
+                            &self.combo_box_state,
+                            "select a cas...",
+                            self.combo_box_selection.as_ref(),
+                            Message::ComboBoxSelected,
+                        )
+                        .input_style(match &self.combo_box_selection {
+                            Some(_) => theme::text_input::primary,
+                            None => theme::text_input::error,
+                        })
+                        .padding(10),
+                    ),
             )
             .push(
                 checkbox("trickset", self.components.trickset)
@@ -556,7 +578,7 @@ async fn pick_source() -> Option<PathBuf> {
 
 async fn _load_source(entry: thugpro::Entry) -> Result<thugpro::Cas> {
     let save = save::Save::read(&mut entry.reader()?)?;
-    let cas = thugpro::Cas::try_from(save)?;
+    let cas = thugpro::Cas::try_from(&save)?;
 
     Ok(cas)
 }

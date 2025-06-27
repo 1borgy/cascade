@@ -5,9 +5,6 @@ use encoding_rs::WINDOWS_1252;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct Kind();
-
-#[derive(Serialize, Deserialize)]
 pub enum Id {
     None,
     Checksum(u32),
@@ -82,7 +79,7 @@ impl Value {
 pub struct Symbol {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    pub id: Id,
+    pub id: qb::Id,
     pub value: Value,
 }
 
@@ -95,7 +92,7 @@ impl Symbol {
                 qb::Id::Compress8(v) => lut.compress.lookup8(v).cloned(),
                 qb::Id::Compress16(v) => lut.compress.lookup16(v).cloned(),
             },
-            id: symbol.id.into(),
+            id: symbol.id.clone(),
             value: Value::new(&symbol.value, lut),
         }
     }
