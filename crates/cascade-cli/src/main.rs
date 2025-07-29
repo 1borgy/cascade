@@ -1,16 +1,22 @@
 use std::{
     fmt::Debug,
     fs::{self, File},
-    io::{BufReader, Write},
+    io::{BufReader, Read, Write},
     path::PathBuf,
+    time::Duration,
 };
 
 use cascade_dump as dump;
 use cascade_lut::{self as lut, Lut};
 use cascade_save::Save;
+use cascade_thps4 as thps4;
+use cascade_thug as thug;
 use cascade_thugpro as thugpro;
 use cascade_wad::{hed, wad};
 use clap::{Args, Parser, Subcommand};
+use color_eyre::install;
+use serde::Serialize;
+use suppaftp::FtpStream;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -22,6 +28,15 @@ struct App {
     command: Command,
 }
 
+#[derive(clap::ValueEnum, Clone, Default, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum Game {
+    Thps4,
+    Thug,
+    #[default]
+    Thugpro,
+}
+
 #[derive(Debug, Subcommand)]
 enum Command {
     Dump {
@@ -30,6 +45,9 @@ enum Command {
 
         #[arg(short, long)]
         output: PathBuf,
+
+        #[arg(short, long)]
+        game: Game,
     },
     Randomize {
         #[arg(long)]
@@ -71,6 +89,10 @@ enum Command {
         #[arg(long)]
         output: PathBuf,
     },
+    Ftp {
+        #[arg(long)]
+        host: String,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -86,12 +108,20 @@ fn main() -> color_eyre::Result<()> {
     env_logger::init();
 
     match command {
-        Command::Dump { input, output } => {
+        Command::Dump {
+            input,
+            output,
+            game,
+        } => {
             let entry = thugpro::Entry::at_path(&input)?;
             let save = Save::read(&mut entry.reader()?)?;
             let lut = Lut {
                 checksum: lut::Checksum::load()?,
-                compress: thugpro::lut::load_compress()?,
+                compress: match game {
+                    Game::Thps4 => thps4::lut::load_compress()?,
+                    Game::Thug => thug::lut::load_compress()?,
+                    Game::Thugpro => thugpro::lut::load_compress()?,
+                },
             };
             let dump = dump::Save::new(&save, &lut);
 
@@ -140,6 +170,37 @@ fn main() -> color_eyre::Result<()> {
             let mut wad = fs::File::open(wad)?;
 
             wad::extract(hed, &mut wad, output)?;
+
+            Ok(())
+        }
+        Command::Ftp { host } => {
+            fn list(ftp_stream: &mut FtpStream) -> color_eyre::Result<Vec<suppaftp::list::File>> {
+                let output = ftp_stream.list(None)?;
+                log::info!("{}", output.join("\n"));
+
+                let files: Vec<suppaftp::list::File> = output
+                    .iter()
+                    .filter_map(|line| suppaftp::list::File::try_from(line.as_str()).ok())
+                    .collect();
+
+                for file in files.iter() {
+                    log::info!("{:?}", file);
+                }
+
+                Ok(files)
+            }
+
+            let game_id = "BASLUS-20731";
+            let mc_path = "/mc/0";
+            let mut ftp_stream = FtpStream::connect(host)?;
+            ftp_stream.login("anonymous", "")?;
+            ftp_stream.cwd(mc_path)?;
+
+            let files = list(&mut ftp_stream)?;
+            for file in files.iter().filter(|file| file.name().starts_with(game_id)) {
+                ftp_stream.cwd(format!("{}/{}", mc_path, file.name()))?;
+                list(&mut ftp_stream)?;
+            }
 
             Ok(())
         }

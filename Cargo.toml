@@ -9,6 +9,8 @@ cascade-dump = { path = "crates/cascade-dump" }
 cascade-lut = { path = "crates/cascade-lut" }
 cascade-qb = { path = "crates/cascade-qb" }
 cascade-save = { path = "crates/cascade-save" }
+cascade-thps4 = { path = "crates/cascade-thps4" }
+cascade-thug = { path = "crates/cascade-thug" }
 cascade-thugpro = { path = "crates/cascade-thugpro" }
 cascade-wad = { path = "crates/cascade-wad" }
 
@@ -31,6 +33,7 @@ rfd = "0.12.1"
 ron = "0.8.1"
 serde = { version = "1.0.190", features = ["rc", "derive"] }
 serde_json = "1.0.140"
+suppaftp = "^6"
 thiserror = "1.0.50"
 time = { version = "0.3.30", features = ["local-offset", "formatting"] }
 tokio = { version = "1.40.0", features = ["fs", "io-util"] }
