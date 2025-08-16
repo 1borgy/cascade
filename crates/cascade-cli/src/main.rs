@@ -1,20 +1,21 @@
 use std::{
     fmt::Debug,
     fs::{self, File},
-    io::{BufReader, Read, Write},
+    io::{self, BufReader, BufWriter, Write},
     path::PathBuf,
-    time::Duration,
 };
 
+use cascade_backend::{self as backend};
 use cascade_dump as dump;
 use cascade_lut::{self as lut, Lut};
+use cascade_rethawed as rethawed;
 use cascade_save::Save;
+use cascade_thaw as thaw;
 use cascade_thps4 as thps4;
 use cascade_thug as thug;
 use cascade_thugpro as thugpro;
 use cascade_wad::{hed, wad};
 use clap::{Args, Parser, Subcommand};
-use color_eyre::install;
 use serde::Serialize;
 use suppaftp::FtpStream;
 
@@ -34,7 +35,9 @@ enum Game {
     Thps4,
     Thug,
     #[default]
-    Thugpro,
+    Thug2,
+    Thaw,
+    Rethawed,
 }
 
 #[derive(Debug, Subcommand)]
@@ -48,6 +51,48 @@ enum Command {
 
         #[arg(short, long)]
         game: Game,
+    },
+    RoundTrip {
+        #[arg(short, long)]
+        input: PathBuf,
+
+        #[arg(short, long)]
+        output: PathBuf,
+
+        #[arg(short, long)]
+        game: Game,
+    },
+    Modify {
+        #[arg(long)]
+        from: PathBuf,
+
+        #[arg(long)]
+        to: PathBuf,
+
+        #[arg(long)]
+        game: Game,
+
+        #[arg(long)]
+        scales: bool,
+
+        #[arg(long)]
+        trickset: bool,
+    },
+    ModifyBulk {
+        #[arg(long)]
+        from: PathBuf,
+
+        #[arg(long)]
+        to_dir: PathBuf,
+
+        #[arg(long)]
+        game: Game,
+
+        #[arg(long)]
+        scales: bool,
+
+        #[arg(long)]
+        trickset: bool,
     },
     Randomize {
         #[arg(long)]
@@ -95,6 +140,12 @@ enum Command {
     },
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+enum Dump {
+    Neversoft(dump::Save),
+    Rethawed(rethawed::dump::Save),
+}
+
 #[derive(Debug, Args)]
 struct GlobalOpts {}
 
@@ -113,22 +164,125 @@ fn main() -> color_eyre::Result<()> {
             output,
             game,
         } => {
-            let entry = thugpro::Entry::at_path(&input)?;
-            let save = Save::read(&mut entry.reader()?)?;
+            let entry = thugpro::Entry::create(&input)?;
             let lut = Lut {
                 checksum: lut::Checksum::load()?,
                 compress: match game {
                     Game::Thps4 => thps4::lut::load_compress()?,
                     Game::Thug => thug::lut::load_compress()?,
-                    Game::Thugpro => thugpro::lut::load_compress()?,
+                    Game::Thug2 => thugpro::lut::load_compress()?,
+                    Game::Thaw => thaw::lut::load_compress()?,
+                    Game::Rethawed => rethawed::lut::load_compress()?,
                 },
             };
-            let dump = dump::Save::new(&save, &lut);
+            let dump = match game {
+                Game::Thps4 | Game::Thug | Game::Thug2 | Game::Thaw => {
+                    let save = Save::read(&mut entry.reader()?)?;
+                    Dump::Neversoft(dump::Save::new(&save, &lut))
+                }
+                Game::Rethawed => {
+                    let save = rethawed::save::Save::read(&mut entry.reader()?)?;
+                    Dump::Rethawed(rethawed::dump::Save::new(&save, &lut))
+                }
+            };
 
             let mut file = File::create(output).unwrap();
             let contents =
                 ron::ser::to_string_pretty(&dump, ron::ser::PrettyConfig::new()).unwrap();
             file.write(contents.as_bytes()).unwrap();
+
+            Ok(())
+        }
+        Command::RoundTrip {
+            input,
+            output,
+            game,
+        } => {
+            fn round_trip<S, T, E>(
+                input: &PathBuf,
+                output: &PathBuf,
+                parser: impl backend::Parser<S, T, E>,
+            ) -> Result<(), E>
+            where
+                E: From<io::Error>,
+            {
+                let file = fs::File::open(&input)?;
+                let mut reader = BufReader::new(file);
+                let mut save = parser.read(&mut reader)?;
+
+                let parsed = parser.parse(&save)?;
+                parser.modify(&mut save, &parsed)?;
+
+                let file = fs::File::create(&output)?;
+                let mut writer = BufWriter::new(file);
+                parser.write(&save, &mut writer)?;
+
+                Ok(())
+            }
+
+            match game {
+                Game::Thug2 => round_trip(&input, &output, thugpro::backend::Parser {})?,
+                Game::Rethawed => round_trip(&input, &output, rethawed::backend::Parser {})?,
+                Game::Thps4 => todo!(),
+                Game::Thug => todo!(),
+                Game::Thaw => todo!(),
+            }
+
+            Ok(())
+        }
+        Command::Modify {
+            from,
+            to,
+            game,
+            scales,
+            trickset,
+        } => {
+            let flags = backend::Flags {
+                trickset,
+                scales,
+                summary: false,
+            };
+
+            match game {
+                Game::Thug2 => modify(&from, &to, thugpro::backend::Parser {}, flags)?,
+                Game::Rethawed => modify(&from, &to, rethawed::backend::Parser {}, flags)?,
+                Game::Thps4 => todo!(),
+                Game::Thug => todo!(),
+                Game::Thaw => todo!(),
+            }
+
+            Ok(())
+        }
+        Command::ModifyBulk {
+            from,
+            to_dir,
+            game,
+            scales,
+            trickset,
+        } => {
+            let flags = backend::Flags {
+                trickset,
+                scales,
+                summary: false,
+            };
+
+            match game {
+                Game::Thps4 => todo!(),
+                Game::Thug => todo!(),
+                Game::Thug2 => modify_bulk(
+                    &from,
+                    thugpro::backend::Explorer::new(to_dir),
+                    thugpro::backend::Parser {},
+                    flags,
+                )?,
+                Game::Thaw => todo!(),
+                Game::Rethawed => modify_bulk(
+                    &from,
+                    rethawed::backend::Explorer::new(to_dir),
+                    rethawed::backend::Parser {},
+                    flags,
+                )?,
+            }
 
             Ok(())
         }
@@ -205,4 +359,76 @@ fn main() -> color_eyre::Result<()> {
             Ok(())
         }
     }
+}
+
+fn modify<S, T, E>(
+    from: &PathBuf,
+    to: &PathBuf,
+    parser: impl backend::Parser<S, T, E>,
+    flags: backend::Flags,
+) -> Result<(), E>
+where
+    E: From<io::Error>,
+{
+    let from_file = fs::File::open(&from)?;
+    let mut from_reader = BufReader::new(from_file);
+    let from_save = parser.read(&mut from_reader)?;
+
+    let to_file = fs::File::open(&to)?;
+    let mut to_reader = BufReader::new(to_file);
+    let mut to_save = parser.read(&mut to_reader)?;
+
+    let from_parsed = parser.parse(&from_save)?;
+    let from_parsed = parser.mask(from_parsed, flags);
+    parser.modify(&mut to_save, &from_parsed)?;
+
+    let to_file = fs::File::create(&to)?;
+    let mut writer = BufWriter::new(to_file);
+    parser.write(&to_save, &mut writer)?;
+
+    Ok(())
+}
+
+fn modify_bulk<Entry, Save, Cas, Error>(
+    from: &PathBuf,
+    explorer: impl backend::Explorer<Entry, Error>,
+    parser: impl backend::Parser<Save, Cas, Error>,
+    flags: backend::Flags,
+) -> Result<(), Error>
+where
+    Error: From<io::Error> + Debug,
+{
+    fn modify_one<Entry, Save, Cas, Error>(
+        entry: &Entry,
+        transform: &Cas,
+        explorer: &impl backend::Explorer<Entry, Error>,
+        parser: &impl backend::Parser<Save, Cas, Error>,
+    ) -> Result<(), Error> {
+        let mut reader = explorer.reader(&entry)?;
+        let mut save = parser.read(&mut reader)?;
+        parser.modify(&mut save, &transform)?;
+        let mut writer = explorer.writer(&entry)?;
+        parser.write(&save, &mut writer)?;
+        Ok(())
+    }
+
+    let from_file = fs::File::open(&from)?;
+    let mut from_reader = BufReader::new(from_file);
+    let from_save = parser.read(&mut from_reader)?;
+    let from_parsed = parser.parse(&from_save)?;
+    let transform = parser.mask(from_parsed, flags);
+
+    for entry in explorer.list()? {
+        let name = explorer.name(&entry);
+        match modify_one(&entry, &transform, &explorer, &parser) {
+            Ok(_) => {
+                println!("successfully copied {}", name)
+            }
+            Err(e) => {
+                println!("error copying {}: {:?}", name, e)
+            }
+        }
+    }
+
+    Ok(())
 }

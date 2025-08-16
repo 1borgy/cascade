@@ -4,12 +4,12 @@ use std::{
 };
 
 use cascade_backend as backend;
-use cascade_save::Save;
 
 use crate::{
     Error,
     cas::{self, Cas},
     entry::{self, Entry},
+    save::Save,
 };
 
 pub struct Explorer {
@@ -44,23 +44,23 @@ impl backend::Explorer<Entry, Error> for Explorer {
     }
 }
 
-pub struct Parser;
+pub struct Parser {}
 
 impl backend::Parser<Save, Cas, Error> for Parser {
-    fn read(&self, reader: &mut impl Read) -> Result<Save, Error> {
-        Ok(Save::read(reader)?)
+    fn read(&self, reader: &mut (impl Read + Seek)) -> Result<Save, Error> {
+        Save::read(reader)
     }
 
     fn write(&self, save: &Save, writer: &mut impl std::io::Write) -> Result<(), Error> {
-        Ok(save.write(writer)?)
+        save.write(writer)
     }
 
     fn parse(&self, save: &Save) -> Result<Cas, Error> {
-        Ok(Cas::try_from(save)?)
+        Cas::try_from(save)
     }
 
     fn modify(&self, save: &mut Save, transform: &Cas) -> Result<(), Error> {
-        Ok(transform.modify(save)?)
+        transform.modify(save)
     }
 
     fn mask(&self, cas: Cas, flags: backend::Flags) -> Cas {
@@ -68,54 +68,84 @@ impl backend::Parser<Save, Cas, Error> for Parser {
             summary: flags.summary.then_some(cas.summary).unwrap_or_default(),
             data: cas::Data {
                 custom_skater: cas::CustomSkater {
-                    custom: cas::Custom {
+                    custom_classic: cas::CustomClassic {
                         info: cas::Info {
                             trick_mapping: flags
                                 .trickset
-                                .then_some(cas.data.custom_skater.custom.info.trick_mapping)
+                                .then_some(cas.data.custom_skater.custom_classic.info.trick_mapping)
                                 .unwrap_or_default(),
                             specials: flags
                                 .trickset
-                                .then_some(cas.data.custom_skater.custom.info.specials)
+                                .then_some(cas.data.custom_skater.custom_classic.info.specials)
                                 .unwrap_or_default(),
                         },
                         appearance: cas::Appearance {
                             board_bone_group: flags
                                 .scales
                                 .then_some(
-                                    cas.data.custom_skater.custom.appearance.board_bone_group,
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .board_bone_group,
                                 )
                                 .unwrap_or_default(),
                             feet_bone_group: flags
                                 .scales
-                                .then_some(cas.data.custom_skater.custom.appearance.feet_bone_group)
+                                .then_some(
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .feet_bone_group,
+                                )
                                 .unwrap_or_default(),
                             hands_bone_group: flags
                                 .scales
                                 .then_some(
-                                    cas.data.custom_skater.custom.appearance.hands_bone_group,
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .hands_bone_group,
                                 )
                                 .unwrap_or_default(),
                             head_bone_group: flags
                                 .scales
-                                .then_some(cas.data.custom_skater.custom.appearance.head_bone_group)
+                                .then_some(
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .head_bone_group,
+                                )
                                 .unwrap_or_default(),
                             headtop_bone_group: flags
                                 .scales
                                 .then_some(
-                                    cas.data.custom_skater.custom.appearance.headtop_bone_group,
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .headtop_bone_group,
                                 )
                                 .unwrap_or_default(),
                             jaw_bone_group: flags
                                 .scales
-                                .then_some(cas.data.custom_skater.custom.appearance.jaw_bone_group)
+                                .then_some(
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .jaw_bone_group,
+                                )
                                 .unwrap_or_default(),
                             lower_arm_bone_group: flags
                                 .scales
                                 .then_some(
                                     cas.data
                                         .custom_skater
-                                        .custom
+                                        .custom_classic
                                         .appearance
                                         .lower_arm_bone_group,
                                 )
@@ -125,29 +155,49 @@ impl backend::Parser<Save, Cas, Error> for Parser {
                                 .then_some(
                                     cas.data
                                         .custom_skater
-                                        .custom
+                                        .custom_classic
                                         .appearance
                                         .lower_leg_bone_group,
                                 )
                                 .unwrap_or_default(),
                             nose_bone_group: flags
                                 .scales
-                                .then_some(cas.data.custom_skater.custom.appearance.nose_bone_group)
+                                .then_some(
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .nose_bone_group,
+                                )
                                 .unwrap_or_default(),
                             object_scaling: flags
                                 .scales
-                                .then_some(cas.data.custom_skater.custom.appearance.object_scaling)
+                                .then_some(
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .object_scaling,
+                                )
                                 .unwrap_or_default(),
                             stomach_bone_group: flags
                                 .scales
                                 .then_some(
-                                    cas.data.custom_skater.custom.appearance.stomach_bone_group,
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .stomach_bone_group,
                                 )
                                 .unwrap_or_default(),
                             torso_bone_group: flags
                                 .scales
                                 .then_some(
-                                    cas.data.custom_skater.custom.appearance.torso_bone_group,
+                                    cas.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .torso_bone_group,
                                 )
                                 .unwrap_or_default(),
                             upper_arm_bone_group: flags
@@ -155,7 +205,7 @@ impl backend::Parser<Save, Cas, Error> for Parser {
                                 .then_some(
                                     cas.data
                                         .custom_skater
-                                        .custom
+                                        .custom_classic
                                         .appearance
                                         .upper_arm_bone_group,
                                 )
@@ -165,7 +215,7 @@ impl backend::Parser<Save, Cas, Error> for Parser {
                                 .then_some(
                                     cas.data
                                         .custom_skater
-                                        .custom
+                                        .custom_classic
                                         .appearance
                                         .upper_leg_bone_group,
                                 )

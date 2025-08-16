@@ -67,8 +67,10 @@ impl Entry {
         if let Some(metadata) = &self.metadata {
             let filepath = &self.path;
 
+            // TODO: this should probably be configurable
             let original_mod_time = filetime::FileTime::from_last_modification_time(metadata);
 
+            // TODO: how tf do i format this
             log::info!(
                 "setting file modification time for {:?} to {:?}",
                 filepath,
@@ -99,7 +101,7 @@ pub fn find_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
 
             // oops i should probably make this cleaner
             if let Some(filename) = filepath.file_name() {
-                if filename.to_string_lossy().ends_with(".SKA") {
+                if filename.to_string_lossy().ends_with("-Progress") {
                     match Entry::create(&filepath) {
                         Ok(save) => {
                             log::info!("found entry {:?}", filepath);

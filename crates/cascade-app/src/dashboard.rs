@@ -745,7 +745,7 @@ async fn process_entry<P: AsRef<Path>>(
 
     log::info!("overwrote save at {:?}", filepath);
 
-    entry.overwrite_metadata()?;
+    entry.rewrite_metadata()?;
 
     Ok(())
 }

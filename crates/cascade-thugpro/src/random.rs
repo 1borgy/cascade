@@ -156,7 +156,7 @@ pub fn randomize(
     let output_path = PathBuf::from(output_dir).join(format!("{}.SKA", name));
     fs::File::create(&output_path)?;
 
-    let output_entry = Entry::at_path(&output_path)?;
+    let output_entry = Entry::create(&output_path)?;
     base_save.write(&mut output_entry.writer()?)?;
 
     Ok(())

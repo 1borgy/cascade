@@ -4,10 +4,13 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
+cascade-backend = { workspace = true }
 cascade-dump = { workspace = true }
 cascade-lut = { workspace = true }
 cascade-qb = { workspace = true }
+cascade-rethawed = { workspace = true, features = ["serde"] }
 cascade-save = { workspace = true }
+cascade-thaw = { workspace = true }
 cascade-thug = { workspace = true }
 cascade-thps4 = { workspace = true }
 cascade-thugpro = { workspace = true }

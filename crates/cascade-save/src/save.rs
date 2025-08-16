@@ -55,6 +55,7 @@ impl Header {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Save {
     pub header: Header,
 

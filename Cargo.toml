@@ -8,7 +8,9 @@ cascade-crc = { path = "crates/cascade-crc" }
 cascade-dump = { path = "crates/cascade-dump" }
 cascade-lut = { path = "crates/cascade-lut" }
 cascade-qb = { path = "crates/cascade-qb" }
+cascade-rethawed = { path = "crates/cascade-rethawed" }
 cascade-save = { path = "crates/cascade-save" }
+cascade-thaw = { path = "crates/cascade-thaw" }
 cascade-thps4 = { path = "crates/cascade-thps4" }
 cascade-thug = { path = "crates/cascade-thug" }
 cascade-thugpro = { path = "crates/cascade-thugpro" }

@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 byteorder = { workspace = true }
 count-write = { workspace = true }
-thiserror = { workspace = true }
 serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
 
 [features]
 serde = ["dep:serde"]
