@@ -69,8 +69,9 @@ impl Chunk {
     }
 
     pub fn write(&self, writer: &mut impl Write) -> Result<()> {
+        let chunk_size = self.structure.raw_bytes()?.len();
         writer.write_u32::<LittleEndian>(self.magic.into())?;
-        writer.write_u32::<LittleEndian>(self.size)?;
+        writer.write_u32::<LittleEndian>(chunk_size as u32)?;
         self.structure.write(writer)?;
         Ok(())
     }
