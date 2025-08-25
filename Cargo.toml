@@ -3,12 +3,11 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
-cascade-backend = { path = "crates/cascade-backend" }
+cascade-core = { path = "crates/cascade-core" }
 cascade-crc = { path = "crates/cascade-crc" }
 cascade-dump = { path = "crates/cascade-dump" }
 cascade-lut = { path = "crates/cascade-lut" }
 cascade-qb = { path = "crates/cascade-qb" }
-cascade-rethawed = { path = "crates/cascade-rethawed" }
 cascade-save = { path = "crates/cascade-save" }
 cascade-thaw = { path = "crates/cascade-thaw" }
 cascade-thps4 = { path = "crates/cascade-thps4" }

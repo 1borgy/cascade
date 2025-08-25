@@ -14,7 +14,7 @@ pub const MAGIC_SUMMARY: u32 = 0x31D7999C;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Magic {
-    Data, // "MEMCARDSTUFF"
+    Data, // aka "MEMCARDSTUFF"
     Summary,
 }
 

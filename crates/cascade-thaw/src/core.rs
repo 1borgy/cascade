@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use cascade_backend as backend;
+use cascade_core as core;
 
 use crate::{
     Error,
@@ -22,7 +22,7 @@ impl Explorer {
     }
 }
 
-impl backend::Explorer<Entry, Error> for Explorer {
+impl core::Explorer<Entry, Error> for Explorer {
     fn list(&self) -> Result<impl Iterator<Item = Entry>, Error> {
         entry::find_entries(&self.cwd).map(|entries| entries.into_iter())
     }
@@ -46,7 +46,7 @@ impl backend::Explorer<Entry, Error> for Explorer {
 
 pub struct Parser {}
 
-impl backend::Parser<Save, Cas, Error> for Parser {
+impl core::Parser<Save, Cas, Error> for Parser {
     fn read(&self, reader: &mut (impl Read + Seek)) -> Result<Save, Error> {
         Save::read(reader)
     }
@@ -63,7 +63,7 @@ impl backend::Parser<Save, Cas, Error> for Parser {
         transform.modify(save)
     }
 
-    fn mask(&self, cas: Cas, flags: backend::Flags) -> Cas {
+    fn mask(&self, cas: Cas, flags: core::Flags) -> Cas {
         Cas {
             summary: flags.summary.then_some(cas.summary).unwrap_or_default(),
             data: cas::Data {

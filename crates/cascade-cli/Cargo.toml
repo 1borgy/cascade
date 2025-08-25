@@ -4,13 +4,12 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-cascade-backend = { workspace = true }
-cascade-dump = { workspace = true }
-cascade-lut = { workspace = true }
+cascade-core = { workspace = true }
+cascade-dump = { workspace = true, optional = true }
+cascade-lut = { workspace = true, optional = true }
 cascade-qb = { workspace = true }
-cascade-rethawed = { workspace = true, features = ["serde"] }
 cascade-save = { workspace = true }
-cascade-thaw = { workspace = true }
+cascade-thaw = { workspace = true, features = ["serde"] }
 cascade-thug = { workspace = true }
 cascade-thps4 = { workspace = true }
 cascade-thugpro = { workspace = true }
@@ -25,5 +24,10 @@ rand = { workspace = true }
 ron = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-suppaftp = { workspace = true }
+suppaftp = { workspace = true, optional = true }
 thiserror = { workspace = true }
+
+[features]
+default = []
+dump = ["dep:cascade-lut", "dep:cascade-dump"]
+ftp = ["dep:suppaftp"]

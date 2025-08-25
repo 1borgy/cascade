@@ -27,15 +27,14 @@ pub struct Cascade {
     selections_path: PathBuf,
 
     config: Config,
-    debug: bool,
     theme: Theme,
 
     dashboard: dashboard::Dashboard,
 }
 
 impl Cascade {
-    pub fn new(flags: (PathBuf, Config, Selections, Theme, bool)) -> (Self, Task<Message>) {
-        let (cascade_dir, config, selections, theme, debug) = flags;
+    pub fn new(flags: (PathBuf, Config, Selections, Theme)) -> (Self, Task<Message>) {
+        let (cascade_dir, config, selections, theme) = flags;
         let backup_dir = paths::backup_dir(&cascade_dir);
 
         let (dashboard, dashboard_command) = dashboard::Dashboard::new(
@@ -57,7 +56,6 @@ impl Cascade {
                 selections_path,
                 theme,
                 config,
-                debug,
                 dashboard,
             },
             dashboard_command.map(Message::Dashboard),
@@ -191,10 +189,12 @@ impl Cascade {
             .padding(Padding::new(20.))
             .into();
 
-        match self.debug {
-            true => content.explain(iced::Color::WHITE),
-            false => content,
-        }
+        content
+
+        // match self.debug {
+        //     true => content.explain(iced::Color::WHITE),
+        //     false => content,
+        // }
     }
 
     pub fn subscription(&self) -> Subscription<Message> {

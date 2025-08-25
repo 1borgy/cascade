@@ -47,8 +47,8 @@ impl Checksum {
 
 #[derive(Serialize, Deserialize)]
 pub struct Compress {
-    compress8: Vec<String>,
-    compress16: Vec<String>,
+    pub compress8: Vec<String>,
+    pub compress16: Vec<String>,
 }
 
 impl Compress {

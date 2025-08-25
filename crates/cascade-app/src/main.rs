@@ -1,10 +1,9 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
-#![feature(error_generic_member_access, path_add_extension)]
+#![feature(error_generic_member_access)]
 
 use std::{io, path::Path, result};
 
 use app::Cascade;
-use clap::Parser;
 use config::{Config, Selections};
 use fern::colors::{Color, ColoredLevelConfig};
 use iced::{window, Size};
@@ -50,13 +49,6 @@ pub enum Error {
 
 type Result<T> = result::Result<T, Error>;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    #[arg(short, long, default_value_t = false)]
-    debug: bool,
-}
-
 fn configure_logging(path: impl AsRef<Path>) -> Result<()> {
     let colors = ColoredLevelConfig::new().info(Color::Green);
 
@@ -92,8 +84,6 @@ fn configure_logging(path: impl AsRef<Path>) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let Args { debug } = Args::parse();
-
     let cascade_dir = paths::cascade_dir().expect("could not determine cascade dir");
 
     configure_logging(paths::log(&cascade_dir))?;
@@ -118,7 +108,7 @@ fn main() -> Result<()> {
         .font(fonts::ICONS_FONT_BYTES)
         .scale_factor(Cascade::scale_factor)
         .subscription(Cascade::subscription)
-        .run_with(move || Cascade::new((cascade_dir, config, selections, theme, debug)))?;
+        .run_with(move || Cascade::new((cascade_dir, config, selections, theme)))?;
 
     Ok(())
 }

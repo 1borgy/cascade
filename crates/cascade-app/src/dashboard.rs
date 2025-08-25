@@ -7,7 +7,9 @@ use std::{
     sync::Arc,
 };
 
+use cascade_core as core;
 use cascade_save as save;
+use cascade_thaw as thaw;
 use cascade_thugpro as thugpro;
 use iced::{
     alignment::Vertical,
@@ -107,18 +109,22 @@ pub enum Event {
     SetScales(bool),
 }
 
-pub struct Dashboard {
+pub struct Dashboard<Entry, Save, Cas, Error>
+where
+    Entry: Sized,
+    Error: Sized,
+{
     backup_dir: PathBuf,
     saves_dir: Option<PathBuf>,
     default_selection: bool,
     enabled: bool,
 
-    source_entry: Option<thugpro::Entry>,
-    source: Option<thugpro::Cas>,
+    source_entry: Option<Entry>,
+    explorer: Box<dyn core::Explorer<Entry, Error>>,
 
-    candidates: IndexMap<thugpro::Entry, bool>,
+    candidates: IndexMap<Entry, bool>,
     components: Components,
-    queue: IndexMap<thugpro::Entry, Status>,
+    queue: IndexMap<Entry, Status>,
 
     warning_message: Option<String>,
 

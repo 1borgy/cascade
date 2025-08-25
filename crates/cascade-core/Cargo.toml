@@ -1,7 +1,6 @@
 [package]
-name = "cascade-backend"
+name = "cascade-core"
 version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-cascade-save = { workspace = true }

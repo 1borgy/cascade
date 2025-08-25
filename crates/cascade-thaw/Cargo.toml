@@ -4,4 +4,17 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
+cascade-core = { workspace = true }
+cascade-dump = { workspace = true }
 cascade-lut = { workspace = true }
+cascade-save = { workspace = true }
+cascade-qb = { workspace = true }
+
+byteorder = { workspace = true }
+filetime = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
+
+[features]
+serde = ["dep:serde"]

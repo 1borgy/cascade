@@ -1,22 +1,21 @@
 use std::{
     fmt::Debug,
-    fs::{self, File},
-    io::{self, BufReader, BufWriter, Write},
+    fs,
+    io::{self, BufReader, BufWriter},
     path::PathBuf,
 };
 
-use cascade_backend::{self as backend};
+use cascade_core::{self as core};
+#[cfg(feature = "dump")]
 use cascade_dump as dump;
+#[cfg(feature = "dump")]
 use cascade_lut::{self as lut, Lut};
-use cascade_rethawed as rethawed;
-use cascade_save::Save;
 use cascade_thaw as thaw;
-use cascade_thps4 as thps4;
-use cascade_thug as thug;
 use cascade_thugpro as thugpro;
 use cascade_wad::{hed, wad};
 use clap::{Args, Parser, Subcommand};
 use serde::Serialize;
+#[cfg(feature = "ftp")]
 use suppaftp::FtpStream;
 
 #[derive(Parser, Debug)]
@@ -42,6 +41,7 @@ enum Game {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    #[cfg(feature = "dump")]
     Dump {
         #[arg(short, long)]
         input: PathBuf,
@@ -52,6 +52,7 @@ enum Command {
         #[arg(short, long)]
         game: Game,
     },
+    #[cfg(feature = "dump")]
     RoundTrip {
         #[arg(short, long)]
         input: PathBuf,
@@ -134,16 +135,18 @@ enum Command {
         #[arg(long)]
         output: PathBuf,
     },
+    #[cfg(feature = "ftp")]
     Ftp {
         #[arg(long)]
         host: String,
     },
 }
 
+#[cfg(feature = "dump")]
 #[derive(serde::Serialize, serde::Deserialize)]
 enum Dump {
     Neversoft(dump::Save),
-    Rethawed(rethawed::dump::Save),
+    Rethawed(thaw::dump::Save),
 }
 
 #[derive(Debug, Args)]
@@ -159,6 +162,7 @@ fn main() -> color_eyre::Result<()> {
     env_logger::init();
 
     match command {
+        #[cfg(feature = "dump")]
         Command::Dump {
             input,
             output,
@@ -172,7 +176,7 @@ fn main() -> color_eyre::Result<()> {
                     Game::Thug => thug::lut::load_compress()?,
                     Game::Thug2 => thugpro::lut::load_compress()?,
                     Game::Thaw => thaw::lut::load_compress()?,
-                    Game::Rethawed => rethawed::lut::load_compress()?,
+                    Game::Rethawed => thaw::lut::load_compress()?,
                 },
             };
             let dump = match game {
@@ -181,8 +185,8 @@ fn main() -> color_eyre::Result<()> {
                     Dump::Neversoft(dump::Save::new(&save, &lut))
                 }
                 Game::Rethawed => {
-                    let save = rethawed::save::Save::read(&mut entry.reader()?)?;
-                    Dump::Rethawed(rethawed::dump::Save::new(&save, &lut))
+                    let save = thaw::save::Save::read(&mut entry.reader()?)?;
+                    Dump::Rethawed(thaw::dump::Save::new(&save, &lut))
                 }
             };
 
@@ -193,6 +197,7 @@ fn main() -> color_eyre::Result<()> {
 
             Ok(())
         }
+        #[cfg(feature = "dump")]
         Command::RoundTrip {
             input,
             output,
@@ -201,7 +206,7 @@ fn main() -> color_eyre::Result<()> {
             fn round_trip<S, T, E>(
                 input: &PathBuf,
                 output: &PathBuf,
-                parser: impl backend::Parser<S, T, E>,
+                parser: impl core::Parser<S, T, E>,
             ) -> Result<(), E>
             where
                 E: From<io::Error>,
@@ -221,8 +226,8 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thug2 => round_trip(&input, &output, thugpro::backend::Parser {})?,
-                Game::Rethawed => round_trip(&input, &output, rethawed::backend::Parser {})?,
+                Game::Thug2 => round_trip(&input, &output, thugpro::core::Parser {})?,
+                Game::Rethawed => round_trip(&input, &output, thaw::core::Parser {})?,
                 Game::Thps4 => todo!(),
                 Game::Thug => todo!(),
                 Game::Thaw => todo!(),
@@ -237,15 +242,15 @@ fn main() -> color_eyre::Result<()> {
             scales,
             trickset,
         } => {
-            let flags = backend::Flags {
+            let flags = core::Flags {
                 trickset,
                 scales,
                 summary: false,
             };
 
             match game {
-                Game::Thug2 => modify(&from, &to, thugpro::backend::Parser {}, flags)?,
-                Game::Rethawed => modify(&from, &to, rethawed::backend::Parser {}, flags)?,
+                Game::Thug2 => modify(&from, &to, thugpro::core::Parser {}, flags)?,
+                Game::Rethawed => modify(&from, &to, thaw::core::Parser {}, flags)?,
                 Game::Thps4 => todo!(),
                 Game::Thug => todo!(),
                 Game::Thaw => todo!(),
@@ -260,7 +265,7 @@ fn main() -> color_eyre::Result<()> {
             scales,
             trickset,
         } => {
-            let flags = backend::Flags {
+            let flags = core::Flags {
                 trickset,
                 scales,
                 summary: false,
@@ -271,15 +276,15 @@ fn main() -> color_eyre::Result<()> {
                 Game::Thug => todo!(),
                 Game::Thug2 => modify_bulk(
                     &from,
-                    thugpro::backend::Explorer::new(to_dir),
-                    thugpro::backend::Parser {},
+                    thugpro::core::Explorer::new(to_dir),
+                    thugpro::core::Parser {},
                     flags,
                 )?,
                 Game::Thaw => todo!(),
                 Game::Rethawed => modify_bulk(
                     &from,
-                    rethawed::backend::Explorer::new(to_dir),
-                    rethawed::backend::Parser {},
+                    thaw::core::Explorer::new(to_dir),
+                    thaw::core::Parser {},
                     flags,
                 )?,
             }
@@ -327,6 +332,7 @@ fn main() -> color_eyre::Result<()> {
 
             Ok(())
         }
+        #[cfg(feature = "ftp")]
         Command::Ftp { host } => {
             fn list(ftp_stream: &mut FtpStream) -> color_eyre::Result<Vec<suppaftp::list::File>> {
                 let output = ftp_stream.list(None)?;
@@ -364,8 +370,8 @@ fn main() -> color_eyre::Result<()> {
 fn modify<S, T, E>(
     from: &PathBuf,
     to: &PathBuf,
-    parser: impl backend::Parser<S, T, E>,
-    flags: backend::Flags,
+    parser: impl core::Parser<S, T, E>,
+    flags: core::Flags,
 ) -> Result<(), E>
 where
     E: From<io::Error>,
@@ -391,9 +397,9 @@ where
 
 fn modify_bulk<Entry, Save, Cas, Error>(
     from: &PathBuf,
-    explorer: impl backend::Explorer<Entry, Error>,
-    parser: impl backend::Parser<Save, Cas, Error>,
-    flags: backend::Flags,
+    explorer: impl core::Explorer<Entry, Error>,
+    parser: impl core::Parser<Save, Cas, Error>,
+    flags: core::Flags,
 ) -> Result<(), Error>
 where
     Error: From<io::Error> + Debug,
@@ -401,8 +407,8 @@ where
     fn modify_one<Entry, Save, Cas, Error>(
         entry: &Entry,
         transform: &Cas,
-        explorer: &impl backend::Explorer<Entry, Error>,
-        parser: &impl backend::Parser<Save, Cas, Error>,
+        explorer: &impl core::Explorer<Entry, Error>,
+        parser: &impl core::Parser<Save, Cas, Error>,
     ) -> Result<(), Error> {
         let mut reader = explorer.reader(&entry)?;
         let mut save = parser.read(&mut reader)?;

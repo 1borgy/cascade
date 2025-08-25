@@ -1,16 +1,5 @@
 use std::io::{Read, Seek, Write};
 
-// pub trait Parser {
-//     type Save: Sized;
-//     type Transform: Sized;
-//     type Error: Send + Sync + std::error::Error;
-//
-//     fn read(&self, reader: &mut impl Read) -> Result<Self::Save, Self::Error>;
-//     fn write(&self, save: &Self::Save, writer: &mut impl Write) -> Result<(), Self::Error>;
-//     fn parse(&self, save: &Self::Save) -> Result<Self::Transform, Self::Error>;
-//     fn modify(&self, save: &mut Self::Save, transform: Self::Transform) -> Result<(), Self::Error>;
-// }
-
 pub trait Explorer<Entry, Error> {
     fn list(&self) -> Result<impl Iterator<Item = Entry>, Error>;
     fn reader(&self, entry: &Entry) -> Result<impl Read + Seek, Error>;

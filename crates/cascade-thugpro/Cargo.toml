@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-cascade-backend = { workspace = true }
+cascade-core = { workspace = true }
 cascade-crc = { workspace = true }
 cascade-lut = { workspace = true }
 cascade-qb = { workspace = true }

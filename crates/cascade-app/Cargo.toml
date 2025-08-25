@@ -8,12 +8,12 @@ name = "cascade"
 path = "src/main.rs"
 
 [dependencies]
-cascade-backend = { workspace = true }
+cascade-core = { workspace = true }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
 cascade-thugpro = { workspace = true }
+cascade-thaw = { workspace = true }
 
-clap = { workspace = true }
 directories = { workspace = true }
 enum-iterator = { workspace = true }
 fern = { workspace = true }
