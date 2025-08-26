@@ -10,7 +10,7 @@ use std::{
 use cascade_core as core;
 use cascade_save as save;
 use cascade_thaw as thaw;
-use cascade_thugpro as thugpro;
+use cascade_thug2 as thug2;
 use iced::{
     alignment::Vertical,
     font::Weight,
@@ -39,8 +39,8 @@ pub enum Error {
     #[error("tasks error: {0}")]
     Tasks(#[from] tasks::Error),
 
-    #[error("thug pro error: {0}")]
-    ThugPro(#[from] thugpro::Error),
+    #[error("thug2 error: {0}")]
+    Thug2(#[from] thug2::Error),
 
     #[error("save error: {0}")]
     Save(#[from] save::Error),
@@ -77,8 +77,8 @@ pub struct Components {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    LoadedCandidates(Result<IndexMap<thugpro::Entry, bool>>),
-    LoadedSource(Result<thugpro::Cas>),
+    LoadedCandidates(Result<IndexMap<thug2::Entry, bool>>),
+    LoadedSource(Result<thug2::Cas>),
 
     PickSource,
     SourcePicked(Option<PathBuf>),
@@ -88,13 +88,13 @@ pub enum Message {
     ClosedSavesDirDialog,
 
     ToggleSelectAll,
-    ToggleSelection(thugpro::Entry),
+    ToggleSelection(thug2::Entry),
     ToggleTricksetComponent(bool),
     ToggleScalesComponent(bool),
 
     Start,
-    PreProcessDone(Result<(Arc<thugpro::Cas>, PathBuf)>),
-    EntryProcessed(thugpro::Entry, Result<()>),
+    PreProcessDone(Result<(Arc<thug2::Cas>, PathBuf)>),
+    EntryProcessed(thug2::Entry, Result<()>),
 
     ComboBoxSelected(String),
 }
@@ -143,7 +143,7 @@ impl Dashboard {
         scales: bool,
     ) -> (Self, Task<Message>) {
         let source_entry = source_path
-            .map(|path| thugpro::Entry::at_path(path).ok())
+            .map(|path| thug2::Entry::at_path(path).ok())
             .flatten();
 
         let tasks = Task::batch(vec![
@@ -239,7 +239,7 @@ impl Dashboard {
                 (Task::none(), None)
             }
             Message::PickSource => (Task::perform(pick_source(), Message::SourcePicked), None),
-            Message::SourcePicked(Some(path)) => match thugpro::Entry::at_path(path.clone()) {
+            Message::SourcePicked(Some(path)) => match thug2::Entry::at_path(path.clone()) {
                 Ok(entry) => {
                     self.source_entry = Some(entry.clone());
                     (
@@ -582,14 +582,14 @@ async fn pick_source() -> Option<PathBuf> {
     )
 }
 
-async fn _load_source(entry: thugpro::Entry) -> Result<thugpro::Cas> {
+async fn _load_source(entry: thug2::Entry) -> Result<thug2::Cas> {
     let save = save::Save::read(&mut entry.reader()?)?;
-    let cas = thugpro::Cas::try_from(&save)?;
+    let cas = thug2::Cas::try_from(&save)?;
 
     Ok(cas)
 }
 
-async fn load_source(entry: thugpro::Entry) -> Result<thugpro::Cas> {
+async fn load_source(entry: thug2::Entry) -> Result<thug2::Cas> {
     let source = tokio::spawn(async move { _load_source(entry).await })
         .await
         .map_err(|_| Error::Task)?;
@@ -601,9 +601,9 @@ async fn load_candidates(
     saves_dir: Option<impl AsRef<Path>>,
     selections: Selections,
     default_selection: bool,
-) -> Result<IndexMap<thugpro::Entry, bool>> {
+) -> Result<IndexMap<thug2::Entry, bool>> {
     let saves_dir = saves_dir.ok_or(Error::NoSavesDir)?;
-    let entries = thugpro::entry::find_entries(saves_dir)?;
+    let entries = thug2::entry::find_entries(saves_dir)?;
 
     log::info!("found {} saves", entries.len());
 
@@ -620,16 +620,16 @@ async fn load_candidates(
     Ok(candidates)
 }
 
-fn make_transform(source: &thugpro::cas::Cas, components: Components) -> thugpro::cas::Cas {
+fn make_transform(source: &thug2::cas::Cas, components: Components) -> thug2::cas::Cas {
     let info = &source.data.custom_skater.custom.info;
     let appearance = &source.data.custom_skater.custom.appearance;
 
-    thugpro::cas::Cas {
+    thug2::cas::Cas {
         summary: source.summary.clone(),
-        data: thugpro::cas::Data {
-            custom_skater: thugpro::cas::CustomSkater {
-                custom: thugpro::cas::Custom {
-                    info: thugpro::cas::Info {
+        data: thug2::cas::Data {
+            custom_skater: thug2::cas::CustomSkater {
+                custom: thug2::cas::Custom {
+                    info: thug2::cas::Info {
                         trick_mapping: components
                             .trickset
                             .then_some(info.trick_mapping.clone())
@@ -639,7 +639,7 @@ fn make_transform(source: &thugpro::cas::Cas, components: Components) -> thugpro
                             .then_some(info.specials.clone())
                             .unwrap_or_default(),
                     },
-                    appearance: thugpro::cas::Appearance {
+                    appearance: thug2::cas::Appearance {
                         board_bone_group: components
                             .scales
                             .then_some(appearance.board_bone_group.clone())
@@ -700,7 +700,7 @@ fn make_transform(source: &thugpro::cas::Cas, components: Components) -> thugpro
                     },
                 },
             },
-            story_skater: thugpro::cas::StorySkater {
+            story_skater: thug2::cas::StorySkater {
                 tricks: components
                     .trickset
                     .then_some(source.data.story_skater.tricks.clone())
@@ -712,9 +712,9 @@ fn make_transform(source: &thugpro::cas::Cas, components: Components) -> thugpro
 
 async fn pre_process<P: AsRef<Path>>(
     backup_dir: P,
-    source: thugpro::Cas,
+    source: thug2::Cas,
     components: Components,
-) -> Result<(Arc<thugpro::Cas>, PathBuf)> {
+) -> Result<(Arc<thug2::Cas>, PathBuf)> {
     let backup_dir = backup_dir.as_ref();
     fs::create_dir_all(backup_dir).await?;
     let transform = Arc::new(make_transform(&source, components));
@@ -730,9 +730,9 @@ async fn pre_process<P: AsRef<Path>>(
 }
 
 async fn process_entry<P: AsRef<Path>>(
-    entry: thugpro::Entry,
+    entry: thug2::Entry,
     backup_dir: P,
-    transform: Arc<thugpro::Cas>,
+    transform: Arc<thug2::Cas>,
 ) -> Result<()> {
     let backup_dir = backup_dir.as_ref();
 

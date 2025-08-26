@@ -1,6 +1,6 @@
 use std::{env, fs, path::PathBuf};
 
-use cascade_thugpro as thugpro;
+use cascade_thug2 as thug2;
 
 pub fn output_dir() -> PathBuf {
     let temp_dir = env::temp_dir();
@@ -16,7 +16,7 @@ pub fn output_dir() -> PathBuf {
     output_dir
 }
 
-pub fn entries() -> Vec<thugpro::Entry> {
+pub fn entries() -> Vec<thug2::Entry> {
     let cwd = env::current_dir().expect("could not get cwd");
 
     let saves_dir = PathBuf::from(cwd)
@@ -25,5 +25,5 @@ pub fn entries() -> Vec<thugpro::Entry> {
         .join("assets")
         .join("saves");
 
-    thugpro::entry::find_entries(&saves_dir).expect("could not find saves directory")
+    thug2::entry::find_entries(&saves_dir).expect("could not find saves directory")
 }

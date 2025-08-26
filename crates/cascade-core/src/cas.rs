@@ -1,10 +1,16 @@
-use crate::{Flags, save};
+use crate::save;
 
-pub trait Cas<Save, Error>
-where
-    Save: save::Save<Error>,
-{
-    fn parse(save: &Save) -> Result<impl Cas<Save, Error>, Error>;
-    fn modify(&self, save: &mut Save) -> Result<(), Error>;
+pub struct Flags {
+    pub summary: bool,
+    pub trickset: bool,
+    pub scales: bool,
+}
+
+pub trait Cas: Sized {
+    type Error;
+    type Save: save::Save;
+
+    fn parse(save: &Self::Save) -> Result<Self, Self::Error>;
     fn mask(self, flags: Flags) -> Self;
+    fn modify(&self, save: &mut Self::Save) -> Result<(), Self::Error>;
 }

@@ -1,36 +1,16 @@
-use std::io::{Read, Seek, Write};
+mod cas;
+mod entry;
+mod save;
 
-pub mod cas;
-pub mod entry;
-pub mod save;
+pub use cas::{Cas, Flags};
+pub use entry::Entry;
+pub use save::Save;
 
-pub trait Explorer<Entry, Error> {
-    fn list(&self) -> Result<impl Iterator<Item = Entry>, Error>;
-    fn reader(&self, entry: &Entry) -> Result<impl Read + Seek, Error>;
-    fn writer(&self, entry: &Entry) -> Result<impl Write, Error>;
-    fn name(&self, entry: &Entry) -> String;
-    fn rewrite_metadata(&self, entry: &Entry) -> Result<(), Error>;
-}
+pub trait Core {
+    type Entry: entry::Entry;
+    type Save: save::Save;
+    type Cas: cas::Cas<Save = Self::Save>;
+    type Error;
 
-pub struct Flags {
-    pub summary: bool,
-    pub trickset: bool,
-    pub scales: bool,
-}
-
-pub trait Parser<Save, Cas, Error> {
-    fn read(&self, reader: &mut (impl Read + Seek)) -> Result<Save, Error>;
-    fn write(&self, save: &Save, writer: &mut impl Write) -> Result<(), Error>;
-    fn parse(&self, save: &Save) -> Result<Cas, Error>;
-    fn mask(&self, cas: Cas, flags: Flags) -> Cas;
-    fn modify(&self, save: &mut Save, cas: &Cas) -> Result<(), Error>;
-}
-
-pub trait Core<Entry, Save, Cas, Error>
-where
-    Entry: entry::Entry<Error>,
-    Save: save::Save<Error>,
-    Cas: cas::Cas<Save, Error>,
-{
-    fn list_entries() -> Result<impl Iterator<Item = Entry>, Error>;
+    fn list_entries(&self) -> Result<impl Iterator<Item = Self::Entry>, Self::Error>;
 }

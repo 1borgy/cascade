@@ -1,11 +1,11 @@
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use cascade_crc as crc;
 use cascade_qb as qb;
 use count_write::CountWrite;
 
-use crate::Result;
+use crate::{Error, Result};
 
 const SAVE_FILE_SIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
@@ -63,8 +63,10 @@ pub struct Save {
     pub data: Box<qb::Structure>,
 }
 
-impl Save {
-    pub fn read(reader: &mut impl Read) -> Result<Self> {
+impl cascade_core::save::Save for Save {
+    type Error = Error;
+
+    fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         Ok(Self {
             header: Header::read(reader)?,
             summary: Box::new(qb::Structure::read(reader)?),
@@ -72,10 +74,9 @@ impl Save {
         })
     }
 
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
         let mut count_writer = CountWrite::from(writer);
 
-        // TODO fix this
         let header = self.calculate_header()?;
         header.write(&mut count_writer)?;
 
@@ -97,8 +98,11 @@ impl Save {
 
         Ok(())
     }
+}
 
+impl Save {
     fn calculate_header(&self) -> Result<Header> {
+        // TODO use seek instead of serializing save twice
         let mut summary_bytes = self.summary.raw_bytes()?;
         let mut data_bytes = self.data.raw_bytes()?;
 

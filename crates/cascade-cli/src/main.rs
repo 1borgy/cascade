@@ -5,13 +5,14 @@ use std::{
     path::PathBuf,
 };
 
-use cascade_core::{self as core};
+use cascade_core as core;
 #[cfg(feature = "dump")]
 use cascade_dump as dump;
 #[cfg(feature = "dump")]
 use cascade_lut::{self as lut, Lut};
 use cascade_thaw as thaw;
-use cascade_thugpro as thugpro;
+use cascade_thug2 as thug2;
+#[cfg(feature = "wad")]
 use cascade_wad::{hed, wad};
 use clap::{Args, Parser, Subcommand};
 use serde::Serialize;
@@ -52,7 +53,6 @@ enum Command {
         #[arg(short, long)]
         game: Game,
     },
-    #[cfg(feature = "dump")]
     RoundTrip {
         #[arg(short, long)]
         input: PathBuf,
@@ -121,10 +121,12 @@ enum Command {
         #[arg(long)]
         female: bool,
     },
+    #[cfg(feature = "wad")]
     Hed {
         #[arg(long)]
         input: PathBuf,
     },
+    #[cfg(feature = "wad")]
     Wad {
         #[arg(long)]
         hed: PathBuf,
@@ -168,13 +170,13 @@ fn main() -> color_eyre::Result<()> {
             output,
             game,
         } => {
-            let entry = thugpro::Entry::create(&input)?;
+            let entry = thug2::Entry::create(&input)?;
             let lut = Lut {
                 checksum: lut::Checksum::load()?,
                 compress: match game {
                     Game::Thps4 => thps4::lut::load_compress()?,
                     Game::Thug => thug::lut::load_compress()?,
-                    Game::Thug2 => thugpro::lut::load_compress()?,
+                    Game::Thug2 => thug2::lut::load_compress()?,
                     Game::Thaw => thaw::lut::load_compress()?,
                     Game::Rethawed => thaw::lut::load_compress()?,
                 },
@@ -197,7 +199,6 @@ fn main() -> color_eyre::Result<()> {
 
             Ok(())
         }
-        #[cfg(feature = "dump")]
         Command::RoundTrip {
             input,
             output,
@@ -226,7 +227,7 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thug2 => round_trip(&input, &output, thugpro::core::Parser {})?,
+                Game::Thug2 => round_trip(&input, &output, thug2::core::Parser {})?,
                 Game::Rethawed => round_trip(&input, &output, thaw::core::Parser {})?,
                 Game::Thps4 => todo!(),
                 Game::Thug => todo!(),
@@ -249,7 +250,7 @@ fn main() -> color_eyre::Result<()> {
             };
 
             match game {
-                Game::Thug2 => modify(&from, &to, thugpro::core::Parser {}, flags)?,
+                Game::Thug2 => modify(&from, &to, thug2::core::Parser {}, flags)?,
                 Game::Rethawed => modify(&from, &to, thaw::core::Parser {}, flags)?,
                 Game::Thps4 => todo!(),
                 Game::Thug => todo!(),
@@ -276,8 +277,8 @@ fn main() -> color_eyre::Result<()> {
                 Game::Thug => todo!(),
                 Game::Thug2 => modify_bulk(
                     &from,
-                    thugpro::core::Explorer::new(to_dir),
-                    thugpro::core::Parser {},
+                    thug2::core::Explorer::new(to_dir),
+                    thug2::core::Parser {},
                     flags,
                 )?,
                 Game::Thaw => todo!(),
@@ -297,8 +298,8 @@ fn main() -> color_eyre::Result<()> {
             name,
             female,
         } => {
-            let entries = thugpro::entry::find_entries(input_dir).unwrap();
-            thugpro::random::randomize(&entries, output_dir, name, female)?;
+            let entries = thug2::entry::find_entries(input_dir).unwrap();
+            thug2::random::randomize(&entries, output_dir, name, female)?;
 
             Ok(())
         }
@@ -308,11 +309,12 @@ fn main() -> color_eyre::Result<()> {
             number,
             female,
         } => {
-            let entries = thugpro::entry::find_entries(input_dir).unwrap();
-            thugpro::random::randomize_bulk(&entries, output_dir, number, female)?;
+            let entries = thug2::entry::find_entries(input_dir).unwrap();
+            thug2::random::randomize_bulk(&entries, output_dir, number, female)?;
 
             Ok(())
         }
+        #[cfg(feature = "wad")]
         Command::Hed { input } => {
             let file = fs::File::open(input)?;
             let mut reader = BufReader::new(file);
@@ -324,6 +326,7 @@ fn main() -> color_eyre::Result<()> {
 
             Ok(())
         }
+        #[cfg(feature = "wad")]
         Command::Wad { hed, wad, output } => {
             let hed = hed::File::read(&mut BufReader::new(fs::File::open(hed)?))?;
             let mut wad = fs::File::open(wad)?;

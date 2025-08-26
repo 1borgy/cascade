@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 cascade-crc = { workspace = true }
 cascade-qb = { workspace = true }
+cascade-core = { workspace = true }
 
 byteorder = { workspace = true }
 count-write = { workspace = true }

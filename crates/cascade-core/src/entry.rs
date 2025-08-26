@@ -1,15 +1,10 @@
 use std::io::{Read, Seek, Write};
 
-pub trait Entry<Error> {
-    fn reader<R>(&self) -> Result<R, Error>
-    where
-        R: Read + Seek;
+pub trait Entry {
+    type Error;
 
-    fn writer<W>(&self) -> Result<W, Error>
-    where
-        W: Write + Seek;
-
+    fn reader(&self) -> Result<impl Read + Seek, Self::Error>;
+    fn writer(&self) -> Result<impl Write + Seek, Self::Error>;
     fn name(&self) -> String;
-
-    fn rewrite_metadata(&self) -> Result<(), Error>;
+    fn rewrite_metadata(&self) -> Result<(), Self::Error>;
 }

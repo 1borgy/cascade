@@ -12,7 +12,7 @@ cascade-save = { path = "crates/cascade-save" }
 cascade-thaw = { path = "crates/cascade-thaw" }
 cascade-thps4 = { path = "crates/cascade-thps4" }
 cascade-thug = { path = "crates/cascade-thug" }
-cascade-thugpro = { path = "crates/cascade-thugpro" }
+cascade-thug2 = { path = "crates/cascade-thug2" }
 cascade-wad = { path = "crates/cascade-wad" }
 
 byteorder = "1.4.3"

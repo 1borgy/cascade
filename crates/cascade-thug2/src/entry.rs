@@ -15,6 +15,41 @@ pub struct Entry {
     pub metadata: Option<fs::Metadata>,
 }
 
+impl cascade_core::Entry for Entry {
+    type Error = Error;
+
+    fn reader(&self) -> Result<impl Read + Seek> {
+        let file = fs::File::open(&self.path)?;
+        Ok(BufReader::new(file))
+    }
+
+    fn writer(&self) -> Result<impl Write + Seek> {
+        let file = fs::File::create(&self.path)?;
+        Ok(BufWriter::new(file))
+    }
+
+    fn name(&self) -> String {
+        self.filename.clone()
+    }
+
+    fn rewrite_metadata(&self) -> Result<()> {
+        if let Some(metadata) = &self.metadata {
+            let filepath = &self.path;
+
+            let original_mod_time = filetime::FileTime::from_last_modification_time(metadata);
+
+            log::info!(
+                "setting file modification time for {:?} to {:?}",
+                filepath,
+                original_mod_time
+            );
+            filetime::set_file_mtime(&filepath, original_mod_time)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Hash for Entry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.path.hash(state);
@@ -62,26 +97,9 @@ impl Entry {
         let file = fs::File::create(&self.path)?;
         Ok(BufWriter::new(file))
     }
-
-    pub fn rewrite_metadata(&self) -> Result<()> {
-        if let Some(metadata) = &self.metadata {
-            let filepath = &self.path;
-
-            let original_mod_time = filetime::FileTime::from_last_modification_time(metadata);
-
-            log::info!(
-                "setting file modification time for {:?} to {:?}",
-                filepath,
-                original_mod_time
-            );
-            filetime::set_file_mtime(&filepath, original_mod_time)?;
-        }
-
-        Ok(())
-    }
 }
 
-pub fn find_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
+pub fn find_entries(dir: impl AsRef<Path>) -> Result<impl Iterator<Item = Entry>> {
     let dir = PathBuf::from(dir.as_ref());
 
     dir.is_dir()
@@ -116,6 +134,5 @@ pub fn find_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
             } else {
                 None
             }
-        })
-        .collect())
+        }))
 }

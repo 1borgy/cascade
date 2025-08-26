@@ -11,7 +11,7 @@ path = "src/main.rs"
 cascade-core = { workspace = true }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
-cascade-thugpro = { workspace = true }
+cascade-thug2 = { workspace = true }
 cascade-thaw = { workspace = true }
 
 directories = { workspace = true }

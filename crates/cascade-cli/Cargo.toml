@@ -12,8 +12,8 @@ cascade-save = { workspace = true }
 cascade-thaw = { workspace = true, features = ["serde"] }
 cascade-thug = { workspace = true }
 cascade-thps4 = { workspace = true }
-cascade-thugpro = { workspace = true }
-cascade-wad = { workspace = true }
+cascade-thug2 = { workspace = true }
+cascade-wad = { workspace = true, optional = true }
 
 clap = { workspace = true }
 color-eyre = { workspace = true }
@@ -31,3 +31,4 @@ thiserror = { workspace = true }
 default = []
 dump = ["dep:cascade-lut", "dep:cascade-dump"]
 ftp = ["dep:suppaftp"]
+wad = ["dep:cascade-wad"]

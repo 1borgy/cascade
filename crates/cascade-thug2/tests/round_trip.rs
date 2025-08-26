@@ -5,10 +5,10 @@ use std::{
 };
 
 use cascade_save as save;
-use cascade_thugpro as thugpro;
+use cascade_thug2 as thug2;
 mod common;
 
-fn read_entry_bytes(save: &thugpro::Entry) -> Vec<u8> {
+fn read_entry_bytes(save: &thug2::Entry) -> Vec<u8> {
     let filepath = save.filepath();
     let mut file = fs::File::open(&filepath).expect("could not open file for reading");
 
@@ -18,7 +18,7 @@ fn read_entry_bytes(save: &thugpro::Entry) -> Vec<u8> {
     bytes
 }
 
-fn diff_save_files(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) -> bool {
+fn diff_save_files(input_entry: &thug2::Entry, output_entry: &thug2::Entry) -> bool {
     let input_bytes = read_entry_bytes(&input_entry);
     let output_bytes = read_entry_bytes(&output_entry);
 
@@ -56,7 +56,7 @@ fn diff_save_files(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) 
     }
 }
 
-fn round_trip_save_file(input_entry: &thugpro::Entry, output_entry: &thugpro::Entry) -> bool {
+fn round_trip_save_file(input_entry: &thug2::Entry, output_entry: &thug2::Entry) -> bool {
     let mut input_reader = input_entry.reader().unwrap();
     let input_save = save::Save::read(&mut input_reader).expect("could not load input save");
 
