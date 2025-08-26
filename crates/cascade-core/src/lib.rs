@@ -1,5 +1,9 @@
 use std::io::{Read, Seek, Write};
 
+pub mod cas;
+pub mod entry;
+pub mod save;
+
 pub trait Explorer<Entry, Error> {
     fn list(&self) -> Result<impl Iterator<Item = Entry>, Error>;
     fn reader(&self, entry: &Entry) -> Result<impl Read + Seek, Error>;
@@ -20,4 +24,13 @@ pub trait Parser<Save, Cas, Error> {
     fn parse(&self, save: &Save) -> Result<Cas, Error>;
     fn mask(&self, cas: Cas, flags: Flags) -> Cas;
     fn modify(&self, save: &mut Save, cas: &Cas) -> Result<(), Error>;
+}
+
+pub trait Core<Entry, Save, Cas, Error>
+where
+    Entry: entry::Entry<Error>,
+    Save: save::Save<Error>,
+    Cas: cas::Cas<Save, Error>,
+{
+    fn list_entries() -> Result<impl Iterator<Item = Entry>, Error>;
 }
