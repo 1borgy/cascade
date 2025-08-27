@@ -1,11 +1,18 @@
-pub mod cas;
+mod cas;
 mod chunk;
-pub mod core;
+mod core;
+#[cfg(feature = "lut")]
 pub mod dump;
-pub mod entry;
+mod entry;
 mod error;
 mod id;
+#[cfg(feature = "lut")]
 pub mod lut;
-pub mod save;
+mod save;
 
+pub use core::Core;
+
+pub use cas::Cas;
+pub use entry::Entry;
 pub use error::{Error, Result};
+pub use save::Save;

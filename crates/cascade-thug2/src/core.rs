@@ -1,12 +1,6 @@
 use std::path::PathBuf;
 
-use cascade_save::Save;
-
-use crate::{
-    Error, Result,
-    cas::Cas,
-    entry::{Entry, find_entries},
-};
+use crate::{Cas, Entry, Error, Result, Save, entry::find_entries};
 
 pub struct Core {
     cwd: PathBuf,

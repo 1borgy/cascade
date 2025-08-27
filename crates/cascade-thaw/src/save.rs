@@ -17,35 +17,10 @@ pub struct Rethawed {
     pub chunks: Vec<Chunk>,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Save {
-    Thaw(save::Save),
-    Rethawed(Rethawed),
-}
+impl cascade_core::Save for Rethawed {
+    type Error = Error;
 
-impl Save {
-    pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
-        let magic = reader.read_u32::<LittleEndian>()?;
-        reader.seek(SeekFrom::Start(0))?;
-
-        match magic {
-            // "RTHW"
-            0x57485452 => Ok(Save::Rethawed(Rethawed::read(reader)?)),
-            _ => Ok(Save::Thaw(save::Save::read(reader)?)),
-        }
-    }
-
-    pub fn write(&self, writer: &mut impl Write) -> Result<()> {
-        match self {
-            Save::Thaw(save) => Ok(save.write(writer)?),
-            Save::Rethawed(save) => Ok(save.write(writer)?),
-        }
-    }
-}
-
-impl Rethawed {
-    pub fn read(reader: &mut impl Read) -> Result<Self> {
+    fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         let magic = reader.read_u32::<LittleEndian>()?;
         let version = reader.read_u32::<LittleEndian>()?;
         let chunk_count = reader.read_u32::<LittleEndian>()?;
@@ -63,7 +38,7 @@ impl Rethawed {
         })
     }
 
-    pub fn write(&self, writer: &mut impl Write) -> Result<()> {
+    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
         writer.write_u32::<LittleEndian>(self.magic)?;
         writer.write_u32::<LittleEndian>(self.version)?;
         writer.write_u32::<LittleEndian>(self.chunk_count)?;
@@ -74,7 +49,9 @@ impl Rethawed {
 
         Ok(())
     }
+}
 
+impl Rethawed {
     // the following methods assume each type of chunk only exists once per save
 
     pub fn get_chunk(&self, magic: chunk::Magic) -> Option<&Chunk> {
@@ -93,5 +70,34 @@ impl Rethawed {
     pub fn try_get_chunk_mut(&mut self, magic: chunk::Magic) -> Result<&mut Chunk> {
         self.get_chunk_mut(magic)
             .ok_or_else(|| Error::ChunkNotFound(magic))
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Save {
+    Thaw(save::Save),
+    Rethawed(Rethawed),
+}
+
+impl cascade_core::Save for Save {
+    type Error = Error;
+
+    fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
+        let magic = reader.read_u32::<LittleEndian>()?;
+        reader.seek(SeekFrom::Start(0))?;
+
+        match magic {
+            // "RTHW"
+            0x57485452 => Ok(Save::Rethawed(Rethawed::read(reader)?)),
+            _ => Ok(Save::Thaw(save::Save::read(reader)?)),
+        }
+    }
+
+    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
+        match self {
+            Save::Thaw(save) => Ok(save.write(writer)?),
+            Save::Rethawed(save) => Ok(save.write(writer)?),
+        }
     }
 }

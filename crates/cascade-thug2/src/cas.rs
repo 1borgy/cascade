@@ -1,7 +1,6 @@
 use cascade_qb as qb;
-use cascade_save::{self as save};
 
-use crate::{Error, Result, id};
+use crate::{Error, Result, Save, id};
 
 fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> Result<&qb::Symbol> {
     Ok(parent.get(id).ok_or(Error::SymbolNotFound(id))?)
@@ -73,12 +72,16 @@ pub struct Cas {
     pub data: Data,
 }
 
-impl cascade_core::cas::Cas for Cas {
+impl cascade_core::Cas for Cas {
     type Error = Error;
-    type Save = save::Save;
+    type Save = Save;
 
-    fn parse(save: &save::Save) -> std::result::Result<Self, Self::Error> {
-        Ok(Cas::try_from(save)?)
+    fn parse(save: &Save) -> Result<Self> {
+        Self::try_from(save)
+    }
+
+    fn modify(&self, save: &mut Save) -> Result<()> {
+        Ok(self.modify(save)?)
     }
 
     fn mask(self, flags: cascade_core::Flags) -> Self {
@@ -207,16 +210,12 @@ impl cascade_core::cas::Cas for Cas {
             },
         }
     }
-
-    fn modify(&self, save: &mut save::Save) -> std::result::Result<(), Self::Error> {
-        Ok(self.modify(save)?)
-    }
 }
 
-impl TryFrom<&save::Save> for Cas {
+impl TryFrom<&Save> for Cas {
     type Error = Error;
 
-    fn try_from(save: &save::Save) -> Result<Self> {
+    fn try_from(save: &Save) -> Result<Self> {
         Ok(Self {
             summary: Summary::try_from(&save.summary)?,
             data: Data::try_from(&save.data)?,
@@ -225,7 +224,7 @@ impl TryFrom<&save::Save> for Cas {
 }
 
 impl Cas {
-    pub fn modify(&self, save: &mut save::Save) -> Result<()> {
+    pub fn modify(&self, save: &mut Save) -> Result<()> {
         self.summary.modify(&mut save.summary);
         self.data.modify(&mut save.data)?;
         Ok(())

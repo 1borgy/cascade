@@ -15,6 +15,43 @@ pub struct Entry {
     pub metadata: Option<fs::Metadata>,
 }
 
+impl cascade_core::Entry for Entry {
+    type Error = Error;
+
+    fn reader(&self) -> Result<impl Read + Seek> {
+        let file = fs::File::open(&self.path)?;
+        Ok(BufReader::new(file))
+    }
+
+    fn writer(&self) -> std::result::Result<impl Write + Seek, Self::Error> {
+        let file = fs::File::create(&self.path)?;
+        Ok(BufWriter::new(file))
+    }
+
+    fn name(&self) -> String {
+        self.filename.clone()
+    }
+
+    fn rewrite_metadata(&self) -> std::result::Result<(), Self::Error> {
+        if let Some(metadata) = &self.metadata {
+            let filepath = &self.path;
+
+            // TODO: this should probably be configurable
+            let original_mod_time = filetime::FileTime::from_last_modification_time(metadata);
+
+            // TODO: how tf do i format this
+            log::info!(
+                "setting file modification time for {:?} to {:?}",
+                filepath,
+                original_mod_time
+            );
+            filetime::set_file_mtime(&filepath, original_mod_time)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Hash for Entry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.path.hash(state);
@@ -52,38 +89,9 @@ impl Entry {
             metadata,
         })
     }
-
-    pub fn reader(&self) -> Result<impl Read + Seek> {
-        let file = fs::File::open(&self.path)?;
-        Ok(BufReader::new(file))
-    }
-
-    pub fn writer(&self) -> Result<impl Write> {
-        let file = fs::File::create(&self.path)?;
-        Ok(BufWriter::new(file))
-    }
-
-    pub fn rewrite_metadata(&self) -> Result<()> {
-        if let Some(metadata) = &self.metadata {
-            let filepath = &self.path;
-
-            // TODO: this should probably be configurable
-            let original_mod_time = filetime::FileTime::from_last_modification_time(metadata);
-
-            // TODO: how tf do i format this
-            log::info!(
-                "setting file modification time for {:?} to {:?}",
-                filepath,
-                original_mod_time
-            );
-            filetime::set_file_mtime(&filepath, original_mod_time)?;
-        }
-
-        Ok(())
-    }
 }
 
-pub fn find_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
+pub fn find_entries(dir: impl AsRef<Path>) -> Result<impl Iterator<Item = Entry>> {
     let dir = PathBuf::from(dir.as_ref());
 
     dir.is_dir()
@@ -118,6 +126,5 @@ pub fn find_entries(dir: impl AsRef<Path>) -> Result<Vec<Entry>> {
             } else {
                 None
             }
-        })
-        .collect())
+        }))
 }

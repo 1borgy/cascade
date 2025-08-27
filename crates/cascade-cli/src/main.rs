@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use cascade_core as core;
+use cascade_core;
 #[cfg(feature = "dump")]
 use cascade_dump as dump;
 #[cfg(feature = "dump")]
@@ -14,17 +14,15 @@ use cascade_thaw as thaw;
 use cascade_thug2 as thug2;
 #[cfg(feature = "wad")]
 use cascade_wad::{hed, wad};
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use serde::Serialize;
 #[cfg(feature = "ftp")]
 use suppaftp::FtpStream;
 
+/// A CLI-only version of cascade.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct App {
-    #[clap(flatten)]
-    global: GlobalOpts,
-
     #[clap(subcommand)]
     command: Command,
 }
@@ -32,12 +30,9 @@ struct App {
 #[derive(clap::ValueEnum, Clone, Default, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum Game {
-    Thps4,
-    Thug,
     #[default]
     Thug2,
     Thaw,
-    Rethawed,
 }
 
 #[derive(Debug, Subcommand)]
@@ -53,74 +48,76 @@ enum Command {
         #[arg(short, long)]
         game: Game,
     },
-    RoundTrip {
-        #[arg(short, long)]
-        input: PathBuf,
-
-        #[arg(short, long)]
-        output: PathBuf,
-
-        #[arg(short, long)]
-        game: Game,
-    },
+    /// Perform a single modification.
     Modify {
+        /// Path to the save file to copy from.
         #[arg(long)]
         from: PathBuf,
 
+        /// Path to the save file to copy to.
         #[arg(long)]
         to: PathBuf,
 
+        /// Which game the saves are for.
         #[arg(long)]
         game: Game,
 
+        /// If specified, copy scales.
         #[arg(long)]
         scales: bool,
 
+        /// If specified, copy trickset.
         #[arg(long)]
         trickset: bool,
     },
+    /// Perform a modification in bulk (i.e. all saves in a directory).
     ModifyBulk {
+        /// Path to the save file to copy from.
         #[arg(long)]
         from: PathBuf,
 
+        /// Path to the directory containing all save files to copy to.
         #[arg(long)]
         to_dir: PathBuf,
 
+        /// Which game the saves are for.
         #[arg(long)]
         game: Game,
 
+        /// If specified, copy scales.
         #[arg(long)]
         scales: bool,
 
+        /// If specified, copy trickset.
         #[arg(long)]
         trickset: bool,
     },
-    Randomize {
-        #[arg(long)]
-        input_dir: PathBuf,
-
-        #[arg(long)]
-        output_dir: PathBuf,
-
-        #[arg(long, short)]
-        name: String,
-
-        #[arg(long)]
-        female: bool,
-    },
-    RandomizeBulk {
-        #[arg(long)]
-        input_dir: PathBuf,
-
-        #[arg(long)]
-        output_dir: PathBuf,
-
-        #[arg(long, short)]
-        number: usize,
-
-        #[arg(long)]
-        female: bool,
-    },
+    // Randomize {
+    //     #[arg(long)]
+    //     input_dir: PathBuf,
+    //
+    //     #[arg(long)]
+    //     output_dir: PathBuf,
+    //
+    //     #[arg(long, short)]
+    //     name: String,
+    //
+    //     #[arg(long)]
+    //     female: bool,
+    // },
+    // RandomizeBulk {
+    //     #[arg(long)]
+    //     input_dir: PathBuf,
+    //
+    //     #[arg(long)]
+    //     output_dir: PathBuf,
+    //
+    //     #[arg(long, short)]
+    //     number: usize,
+    //
+    //     #[arg(long)]
+    //     female: bool,
+    // },
     #[cfg(feature = "wad")]
     Hed {
         #[arg(long)]
@@ -151,17 +148,13 @@ enum Dump {
     Rethawed(thaw::dump::Save),
 }
 
-#[derive(Debug, Args)]
-struct GlobalOpts {}
-
 fn main() -> color_eyre::Result<()> {
-    let App {
-        global: _global,
-        command,
-    } = App::parse();
+    let App { command } = App::parse();
 
     color_eyre::install()?;
-    env_logger::init();
+    env_logger::Builder::new()
+        .filter(None, log::LevelFilter::Info)
+        .init();
 
     match command {
         #[cfg(feature = "dump")]
@@ -170,69 +163,31 @@ fn main() -> color_eyre::Result<()> {
             output,
             game,
         } => {
+            use std::io::Write;
+
             let entry = thug2::Entry::create(&input)?;
             let lut = Lut {
                 checksum: lut::Checksum::load()?,
                 compress: match game {
-                    Game::Thps4 => thps4::lut::load_compress()?,
-                    Game::Thug => thug::lut::load_compress()?,
                     Game::Thug2 => thug2::lut::load_compress()?,
                     Game::Thaw => thaw::lut::load_compress()?,
-                    Game::Rethawed => thaw::lut::load_compress()?,
                 },
             };
             let dump = match game {
-                Game::Thps4 | Game::Thug | Game::Thug2 | Game::Thaw => {
-                    let save = Save::read(&mut entry.reader()?)?;
+                Game::Thug2 => {
+                    let save = cascade_save::Save::read(&mut entry.reader()?)?;
                     Dump::Neversoft(dump::Save::new(&save, &lut))
                 }
-                Game::Rethawed => {
-                    let save = thaw::save::Save::read(&mut entry.reader()?)?;
+                Game::Thaw => {
+                    let save = thaw::Save::read(&mut entry.reader()?)?;
                     Dump::Rethawed(thaw::dump::Save::new(&save, &lut))
                 }
             };
 
-            let mut file = File::create(output).unwrap();
+            let mut file = fs::File::create(output).unwrap();
             let contents =
                 ron::ser::to_string_pretty(&dump, ron::ser::PrettyConfig::new()).unwrap();
             file.write(contents.as_bytes()).unwrap();
-
-            Ok(())
-        }
-        Command::RoundTrip {
-            input,
-            output,
-            game,
-        } => {
-            fn round_trip<S, T, E>(
-                input: &PathBuf,
-                output: &PathBuf,
-                parser: impl core::Parser<S, T, E>,
-            ) -> Result<(), E>
-            where
-                E: From<io::Error>,
-            {
-                let file = fs::File::open(&input)?;
-                let mut reader = BufReader::new(file);
-                let mut save = parser.read(&mut reader)?;
-
-                let parsed = parser.parse(&save)?;
-                parser.modify(&mut save, &parsed)?;
-
-                let file = fs::File::create(&output)?;
-                let mut writer = BufWriter::new(file);
-                parser.write(&save, &mut writer)?;
-
-                Ok(())
-            }
-
-            match game {
-                Game::Thug2 => round_trip(&input, &output, thug2::core::Parser {})?,
-                Game::Rethawed => round_trip(&input, &output, thaw::core::Parser {})?,
-                Game::Thps4 => todo!(),
-                Game::Thug => todo!(),
-                Game::Thaw => todo!(),
-            }
 
             Ok(())
         }
@@ -243,19 +198,22 @@ fn main() -> color_eyre::Result<()> {
             scales,
             trickset,
         } => {
-            let flags = core::Flags {
+            let flags = cascade_core::Flags {
                 trickset,
                 scales,
                 summary: false,
             };
 
-            match game {
-                Game::Thug2 => modify(&from, &to, thug2::core::Parser {}, flags)?,
-                Game::Rethawed => modify(&from, &to, thaw::core::Parser {}, flags)?,
-                Game::Thps4 => todo!(),
-                Game::Thug => todo!(),
-                Game::Thaw => todo!(),
+            if !scales && !trickset {
+                log::warn!("neither `--scales` nor `--trickset` are specified; expect no changes")
             }
+
+            match game {
+                Game::Thug2 => modify::<thug2::Save, thug2::Cas, thug2::Error>(&from, &to, flags)?,
+                Game::Thaw => modify::<thaw::Save, thaw::Cas, thaw::Error>(&from, &to, flags)?,
+            }
+
+            log::info!("successfully copied to {}", to.display());
 
             Ok(())
         }
@@ -266,51 +224,20 @@ fn main() -> color_eyre::Result<()> {
             scales,
             trickset,
         } => {
-            let flags = core::Flags {
+            let flags = cascade_core::Flags {
                 trickset,
                 scales,
                 summary: false,
             };
 
-            match game {
-                Game::Thps4 => todo!(),
-                Game::Thug => todo!(),
-                Game::Thug2 => modify_bulk(
-                    &from,
-                    thug2::core::Explorer::new(to_dir),
-                    thug2::core::Parser {},
-                    flags,
-                )?,
-                Game::Thaw => todo!(),
-                Game::Rethawed => modify_bulk(
-                    &from,
-                    thaw::core::Explorer::new(to_dir),
-                    thaw::core::Parser {},
-                    flags,
-                )?,
+            if !scales && !trickset {
+                log::warn!("neither `--scales` nor `--trickset` are specified; expect no changes")
             }
 
-            Ok(())
-        }
-        Command::Randomize {
-            input_dir,
-            output_dir,
-            name,
-            female,
-        } => {
-            let entries = thug2::entry::find_entries(input_dir).unwrap();
-            thug2::random::randomize(&entries, output_dir, name, female)?;
-
-            Ok(())
-        }
-        Command::RandomizeBulk {
-            input_dir,
-            output_dir,
-            number,
-            female,
-        } => {
-            let entries = thug2::entry::find_entries(input_dir).unwrap();
-            thug2::random::randomize_bulk(&entries, output_dir, number, female)?;
+            match game {
+                Game::Thug2 => modify_bulk(&from, thug2::Core::new(to_dir), flags)?,
+                Game::Thaw => modify_bulk(&from, thaw::Core::new(to_dir), flags)?,
+            }
 
             Ok(())
         }
@@ -370,71 +297,78 @@ fn main() -> color_eyre::Result<()> {
     }
 }
 
-fn modify<S, T, E>(
+fn modify<Save, Cas, Error>(
     from: &PathBuf,
     to: &PathBuf,
-    parser: impl core::Parser<S, T, E>,
-    flags: core::Flags,
-) -> Result<(), E>
+    flags: cascade_core::Flags,
+) -> Result<(), Error>
 where
-    E: From<io::Error>,
+    Save: cascade_core::Save<Error = Error>,
+    Cas: cascade_core::Cas<Save = Save, Error = Error>,
+    Error: From<io::Error> + Debug,
 {
     let from_file = fs::File::open(&from)?;
     let mut from_reader = BufReader::new(from_file);
-    let from_save = parser.read(&mut from_reader)?;
+    let from_save = Save::read(&mut from_reader)?;
 
     let to_file = fs::File::open(&to)?;
     let mut to_reader = BufReader::new(to_file);
-    let mut to_save = parser.read(&mut to_reader)?;
+    let mut to_save = Save::read(&mut to_reader)?;
 
-    let from_parsed = parser.parse(&from_save)?;
-    let from_parsed = parser.mask(from_parsed, flags);
-    parser.modify(&mut to_save, &from_parsed)?;
+    let from_parsed = Cas::parse(&from_save)?;
+    let transform = from_parsed.mask(flags);
+    transform.modify(&mut to_save)?;
 
     let to_file = fs::File::create(&to)?;
     let mut writer = BufWriter::new(to_file);
-    parser.write(&to_save, &mut writer)?;
+    to_save.write(&mut writer)?;
 
     Ok(())
 }
 
 fn modify_bulk<Entry, Save, Cas, Error>(
     from: &PathBuf,
-    explorer: impl core::Explorer<Entry, Error>,
-    parser: impl core::Parser<Save, Cas, Error>,
-    flags: core::Flags,
+    core: impl cascade_core::Core<Entry = Entry, Save = Save, Cas = Cas, Error = Error>,
+    flags: cascade_core::Flags,
 ) -> Result<(), Error>
 where
+    Entry: cascade_core::Entry<Error = Error>,
+    Save: cascade_core::Save<Error = Error>,
+    Cas: cascade_core::Cas<Save = Save, Error = Error>,
     Error: From<io::Error> + Debug,
 {
-    fn modify_one<Entry, Save, Cas, Error>(
-        entry: &Entry,
-        transform: &Cas,
-        explorer: &impl core::Explorer<Entry, Error>,
-        parser: &impl core::Parser<Save, Cas, Error>,
-    ) -> Result<(), Error> {
-        let mut reader = explorer.reader(&entry)?;
-        let mut save = parser.read(&mut reader)?;
-        parser.modify(&mut save, &transform)?;
-        let mut writer = explorer.writer(&entry)?;
-        parser.write(&save, &mut writer)?;
+    fn modify_one<Entry, Save, Cas, Error>(entry: &Entry, transform: &Cas) -> Result<(), Error>
+    where
+        Entry: cascade_core::Entry<Error = Error>,
+        Save: cascade_core::Save<Error = Error>,
+        Cas: cascade_core::Cas<Save = Save, Error = Error>,
+        Error: From<io::Error> + Debug,
+    {
+        let mut reader = entry.reader()?;
+        let mut save = Save::read(&mut reader)?;
+
+        transform.modify(&mut save)?;
+
+        let mut writer = entry.writer()?;
+        save.write(&mut writer)?;
+
         Ok(())
     }
 
     let from_file = fs::File::open(&from)?;
     let mut from_reader = BufReader::new(from_file);
-    let from_save = parser.read(&mut from_reader)?;
-    let from_parsed = parser.parse(&from_save)?;
-    let transform = parser.mask(from_parsed, flags);
+    let from_save = Save::read(&mut from_reader)?;
+    let from_parsed = Cas::parse(&from_save)?;
+    let transform = from_parsed.mask(flags);
 
-    for entry in explorer.list()? {
-        let name = explorer.name(&entry);
-        match modify_one(&entry, &transform, &explorer, &parser) {
+    for entry in core.list_entries()? {
+        let name = entry.name();
+        match modify_one(&entry, &transform) {
             Ok(_) => {
-                println!("successfully copied {}", name)
+                log::info!("successfully copied to {}", name)
             }
             Err(e) => {
-                println!("error copying {}: {:?}", name, e)
+                log::info!("error copying to {}: {:?}", name, e)
             }
         }
     }

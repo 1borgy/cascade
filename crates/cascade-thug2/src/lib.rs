@@ -1,11 +1,16 @@
-pub mod core;
-pub mod cas;
-pub mod entry;
-pub mod error;
-pub mod id;
+mod cas;
+mod core;
+mod entry;
+mod error;
+mod id;
+#[cfg(feature = "lut")]
 pub mod lut;
-pub mod random;
+mod save;
+// pub mod random;
+
+pub use core::Core;
 
 pub use cas::Cas;
 pub use entry::Entry;
 pub use error::{Error, Result};
+pub use save::Save;

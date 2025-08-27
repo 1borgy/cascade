@@ -72,6 +72,192 @@ pub struct Cas {
     pub data: Data,
 }
 
+impl cascade_core::Cas for Cas {
+    type Error = Error;
+    type Save = Save;
+
+    fn parse(save: &Self::Save) -> Result<Self> {
+        Self::try_from(save)
+    }
+
+    fn modify(&self, save: &mut Self::Save) -> Result<()> {
+        self.modify(save)
+    }
+
+    fn mask(self, flags: cascade_core::Flags) -> Self {
+        Cas {
+            summary: flags.summary.then_some(self.summary).unwrap_or_default(),
+            data: Data {
+                custom_skater: CustomSkater {
+                    custom_classic: CustomClassic {
+                        info: Info {
+                            trick_mapping: flags
+                                .trickset
+                                .then_some(
+                                    self.data.custom_skater.custom_classic.info.trick_mapping,
+                                )
+                                .unwrap_or_default(),
+                            specials: flags
+                                .trickset
+                                .then_some(self.data.custom_skater.custom_classic.info.specials)
+                                .unwrap_or_default(),
+                        },
+                        appearance: Appearance {
+                            board_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .board_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            feet_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .feet_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            hands_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .hands_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            head_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .head_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            headtop_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .headtop_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            jaw_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .jaw_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            lower_arm_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .lower_arm_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            lower_leg_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .lower_leg_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            nose_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .nose_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            object_scaling: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .object_scaling,
+                                )
+                                .unwrap_or_default(),
+                            stomach_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .stomach_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            torso_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .torso_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            upper_arm_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .upper_arm_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            upper_leg_bone_group: flags
+                                .scales
+                                .then_some(
+                                    self.data
+                                        .custom_skater
+                                        .custom_classic
+                                        .appearance
+                                        .upper_leg_bone_group,
+                                )
+                                .unwrap_or_default(),
+                            ..Default::default()
+                        },
+                    },
+                },
+                story_skater: StorySkater {
+                    tricks: flags
+                        .trickset
+                        .then_some(self.data.story_skater.tricks)
+                        .unwrap_or_default(),
+                },
+            },
+        }
+    }
+}
+
 impl TryFrom<&Save> for Cas {
     type Error = Error;
 

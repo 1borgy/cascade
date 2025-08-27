@@ -63,7 +63,7 @@ pub struct Save {
     pub data: Box<qb::Structure>,
 }
 
-impl cascade_core::save::Save for Save {
+impl cascade_core::Save for Save {
     type Error = Error;
 
     fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {

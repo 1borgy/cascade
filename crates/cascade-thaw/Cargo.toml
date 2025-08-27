@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 cascade-core = { workspace = true }
 cascade-dump = { workspace = true }
-cascade-lut = { workspace = true }
+cascade-lut = { workspace = true, optional = true }
 cascade-save = { workspace = true }
 cascade-qb = { workspace = true }
 
@@ -18,3 +18,4 @@ thiserror = { workspace = true }
 
 [features]
 serde = ["dep:serde"]
+lut = ["dep:cascade-lut"]

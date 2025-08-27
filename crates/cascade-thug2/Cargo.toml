@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 cascade-core = { workspace = true }
 cascade-crc = { workspace = true }
-cascade-lut = { workspace = true }
+cascade-lut = { workspace = true, optional = true }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
 
@@ -15,10 +15,10 @@ count-write = { workspace = true }
 encoding_rs = { workspace = true }
 filetime = { workspace = true }
 log = { workspace = true }
+serde = { workspace = true, optional = true }
 rand = { workspace = true }
 thiserror = { workspace = true }
 
-serde = { workspace = true, optional = true }
-
 [features]
 serde = ["dep:serde", "cascade-qb/serde", "cascade-save/serde"]
+lut = ["dep:cascade-lut"]
