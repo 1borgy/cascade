@@ -18,7 +18,7 @@ impl cascade_core::Core for Core {
     type Cas = Cas;
     type Error = Error;
 
-    fn list_entries(&self) -> Result<impl Iterator<Item = Entry>> {
+    fn entries(&self) -> Result<impl Iterator<Item = Entry>> {
         find_entries(&self.cwd)
     }
 }

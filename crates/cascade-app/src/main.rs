@@ -1,24 +1,30 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![feature(error_generic_member_access)]
 
-use std::{io, path::Path, result};
+use std::{io, path::Path};
 
 use app::Cascade;
-use config::{Config, Selections};
 use fern::colors::{Color, ColoredLevelConfig};
 use iced::{window, Size};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 mod app;
 mod config;
-mod dashboard;
+mod error;
 mod fonts;
 mod paths;
+mod state;
 mod tasks;
 mod theme;
 mod widget;
 
 pub use config::Theme;
+pub use error::{Error, Result};
+
+use crate::{
+    paths::Paths,
+    state::{AppState, GameStates, State},
+};
 
 pub type Renderer = iced::Renderer;
 pub type Element<'a, Message> = iced::Element<'a, Message, Theme, Renderer>;
@@ -32,24 +38,7 @@ pub type Button<'a, Message> = iced::widget::Button<'a, Message, Theme>;
 
 const CASCADE_ICON_BYTES: &[u8] = include_bytes!("../../../assets/cascade.ico");
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("an io error occurred: {0}")]
-    Io(#[from] io::Error),
-
-    #[error("an logging error occurred: {0}")]
-    Log(#[from] log::SetLoggerError),
-
-    #[error("a gui error occurred: {0}")]
-    Gui(#[from] iced::Error),
-
-    #[error("a path error occurred: {0}")]
-    Paths(#[from] paths::Error),
-}
-
-type Result<T> = result::Result<T, Error>;
-
-fn configure_logging(path: impl AsRef<Path>) -> Result<()> {
+fn configure_logging(path: impl AsRef<Path>) -> color_eyre::Result<()> {
     let colors = ColoredLevelConfig::new().info(Color::Green);
 
     fern::Dispatch::new()
@@ -83,19 +72,17 @@ fn configure_logging(path: impl AsRef<Path>) -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn main() -> color_eyre::Result<()> {
     let cascade_dir = paths::cascade_dir().expect("could not determine cascade dir");
 
     configure_logging(paths::log(&cascade_dir))?;
 
-    let config = Config::load(paths::config(&cascade_dir)).unwrap_or_default();
-    log::info!("loaded config: {:?}", config);
-
-    let selections = Selections::load(paths::selections(&cascade_dir)).unwrap_or_default();
-    log::info!("loaded selections: {:?}", selections);
-
+    let paths = Paths::new(&cascade_dir);
+    log::info!("paths: {:?}", paths);
     let theme = Theme::load(paths::theme(&cascade_dir)).unwrap_or_default();
     log::info!("loaded theme: {:?}", theme);
+    let state = State::load(&paths);
+    log::info!("loaded state: {:?}", state);
 
     iced::application("cascade", Cascade::update, Cascade::view)
         .theme(Cascade::theme)
@@ -108,7 +95,7 @@ fn main() -> Result<()> {
         .font(fonts::ICONS_FONT_BYTES)
         .scale_factor(Cascade::scale_factor)
         .subscription(Cascade::subscription)
-        .run_with(move || Cascade::new((cascade_dir, config, selections, theme)))?;
+        .run_with(move || Cascade::new(paths, theme, state))?;
 
     Ok(())
 }

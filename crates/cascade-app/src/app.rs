@@ -3,85 +3,62 @@ use std::path::PathBuf;
 use iced::{
     event,
     keyboard::{self, key},
-    widget::container,
+    widget::{container, pick_list},
     Event, Length, Padding, Subscription, Task,
 };
+use serde::Serialize;
 
 use crate::{
-    config::{Config, Format, Selections},
-    dashboard, paths, tasks, Element, Theme,
+    paths::Paths,
+    state::{Game, State},
+    tasks, Element, Result, Theme,
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Dashboard(dashboard::Message),
-
-    WroteConfig(Result<usize, tasks::Error>),
-    WroteSelections(Result<usize, tasks::Error>),
-
+    GameSelected(Game),
     EventOccurred(Event),
+
+    WroteFile(Result<usize>),
 }
 
 pub struct Cascade {
-    config_path: PathBuf,
-    selections_path: PathBuf,
-
-    config: Config,
+    paths: Paths,
     theme: Theme,
-
-    dashboard: dashboard::Dashboard,
+    state: State,
 }
 
 impl Cascade {
-    pub fn new(flags: (PathBuf, Config, Selections, Theme)) -> (Self, Task<Message>) {
-        let (cascade_dir, config, selections, theme) = flags;
-        let backup_dir = paths::backup_dir(&cascade_dir);
-
-        let (dashboard, dashboard_command) = dashboard::Dashboard::new(
-            config.source_path.clone(),
-            config.saves_dir.clone(),
-            backup_dir,
-            config.default_selection,
-            selections,
-            config.trickset,
-            config.scales,
-        );
-
-        let config_path = paths::config(&cascade_dir);
-        let selections_path = paths::selections(&cascade_dir);
-
+    pub fn new(paths: Paths, theme: Theme, state: State) -> (Self, Task<Message>) {
         (
             Cascade {
-                config_path,
-                selections_path,
+                paths,
                 theme,
-                config,
-                dashboard,
+                state,
             },
-            dashboard_command.map(Message::Dashboard),
+            Task::none(),
         )
     }
 
-    fn write_config(&self) -> Task<Message> {
-        Task::perform(
-            tasks::write(self.config.clone(), self.config_path.clone(), Format::Toml),
-            Message::WroteConfig,
-        )
+    fn write_state(&self, obj: impl Serialize + Send + 'static, to: PathBuf) -> Task<Message> {
+        Task::perform(tasks::write_ron(obj, to), Message::WroteFile)
     }
 
-    fn write_selections(&self, selections: Selections) -> Task<Message> {
-        Task::perform(
-            tasks::write(
-                selections.clone(),
-                self.selections_path.clone(),
-                Format::Ron,
-            ),
-            Message::WroteSelections,
-        )
+    fn write_app_state(&self) -> Task<Message> {
+        self.write_state(self.state.app.clone(), self.paths.app.clone())
+    }
+
+    fn write_game_state(&self) -> Task<Message> {
+        match self.state.app.game {
+            Game::Thug2 => {
+                self.write_state(self.state.game.thug2.clone(), self.paths.thug2.clone())
+            }
+            Game::Thaw => self.write_state(self.state.game.thaw.clone(), self.paths.thaw.clone()),
+        }
     }
 
     pub fn scale_factor(&self) -> f64 {
-        self.config.scale_factor
+        self.state.app.scale_factor
     }
 
     pub fn theme(&self) -> Theme {
@@ -90,111 +67,57 @@ impl Cascade {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Dashboard(message) => {
-                let (command, event) = self.dashboard.update(message);
-
-                Task::batch(vec![
-                    command.map(Message::Dashboard),
-                    match event {
-                        Some(dashboard::Event::SetSavesDir(saves_dir)) => {
-                            self.config.saves_dir = Some(saves_dir.clone());
-
-                            Task::batch(vec![
-                                self.dashboard
-                                    .set_saves_dir(saves_dir)
-                                    .map(Message::Dashboard),
-                                self.write_config(),
-                            ])
-                        }
-                        Some(dashboard::Event::SetSelections(selections)) => {
-                            self.write_selections(selections)
-                        }
-                        Some(dashboard::Event::SetDefaultSelection(
-                            default_selection,
-                            selections,
-                        )) => {
-                            self.config.default_selection = default_selection;
-
-                            Task::batch(vec![
-                                self.write_config(),
-                                self.write_selections(selections),
-                            ])
-                        }
-
-                        Some(dashboard::Event::SetSourcePath(path)) => {
-                            self.config.source_path = Some(path);
-                            self.write_config()
-                        }
-
-                        Some(dashboard::Event::SetTrickset(value)) => {
-                            self.config.trickset = value;
-                            self.write_config()
-                        }
-
-                        Some(dashboard::Event::SetScales(value)) => {
-                            self.config.scales = value;
-                            self.write_config()
-                        }
-
-                        None => Task::none(),
-                    },
-                ])
-            }
-            Message::WroteConfig(Ok(_)) | Message::WroteSelections(Ok(_)) => Task::none(),
-            Message::WroteConfig(Err(err)) => {
-                log::info!("error writing config: {:?}", err);
+            Message::GameSelected(game) => {
+                self.state.app.game = game;
                 Task::none()
             }
-            Message::WroteSelections(Err(err)) => {
-                log::info!("error writing selections: {:?}", err);
+            // Ctrl+=
+            Message::EventOccurred(Event::Keyboard(keyboard::Event::KeyPressed {
+                physical_key: key::Physical::Code(key::Code::Equal),
+                modifiers: keyboard::Modifiers::CTRL,
+                ..
+            })) => {
+                if self.state.app.scale_factor < 5. {
+                    self.state.app.scale_factor += 0.1;
+                    self.write_app_state()
+                } else {
+                    Task::none()
+                }
+            }
+            // Ctrl+-
+            Message::EventOccurred(Event::Keyboard(keyboard::Event::KeyPressed {
+                physical_key: key::Physical::Code(key::Code::Minus),
+                modifiers: keyboard::Modifiers::CTRL,
+                ..
+            })) => {
+                if self.state.app.scale_factor > 0.2 {
+                    self.state.app.scale_factor -= 0.1;
+                    self.write_app_state()
+                } else {
+                    Task::none()
+                }
+            }
+            Message::EventOccurred(_) => Task::none(),
+            Message::WroteFile(Ok(_)) => Task::none(),
+            Message::WroteFile(Err(err)) => {
+                log::error!("error writing file: {}", err);
                 Task::none()
             }
-            Message::EventOccurred(event) => match event {
-                Event::Keyboard(event) => match event {
-                    keyboard::Event::KeyPressed {
-                        physical_key: key::Physical::Code(key::Code::Equal),
-                        modifiers: keyboard::Modifiers::CTRL,
-                        ..
-                    } => {
-                        if self.config.scale_factor < 5. {
-                            self.config.scale_factor += 0.1;
-                            self.write_config()
-                        } else {
-                            Task::none()
-                        }
-                    }
-                    keyboard::Event::KeyPressed {
-                        physical_key: key::Physical::Code(key::Code::Minus),
-                        modifiers: keyboard::Modifiers::CTRL,
-                        ..
-                    } => {
-                        if self.config.scale_factor > 0.2 {
-                            self.config.scale_factor -= 0.1;
-                            self.write_config()
-                        } else {
-                            Task::none()
-                        }
-                    }
-                    _ => Task::none(),
-                },
-                _ => Task::none(),
-            },
         }
     }
 
-    pub fn view(&self) -> Element<Message> {
-        let content: Element<Message> = container(self.dashboard.view().map(Message::Dashboard))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(Padding::new(20.))
-            .into();
+    pub fn view(&self) -> Element<'_, Message> {
+        let content: Element<Message> = container(pick_list(
+            Game::ALL,
+            Some(self.state.app.game),
+            Message::GameSelected,
+        ))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .padding(Padding::new(20.))
+        .into();
 
         content
-
-        // match self.debug {
-        //     true => content.explain(iced::Color::WHITE),
-        //     false => content,
-        // }
     }
 
     pub fn subscription(&self) -> Subscription<Message> {

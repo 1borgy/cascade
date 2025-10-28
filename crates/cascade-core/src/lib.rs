@@ -12,5 +12,5 @@ pub trait Core {
     type Cas: cas::Cas<Save = Self::Save>;
     type Error;
 
-    fn list_entries(&self) -> Result<impl Iterator<Item = Self::Entry>, Self::Error>;
+    fn entries(&self) -> Result<impl Iterator<Item = Self::Entry>, Self::Error>;
 }

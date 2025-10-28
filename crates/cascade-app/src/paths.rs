@@ -4,6 +4,7 @@ use std::{
     result,
 };
 
+const STATE_FILENAME: &'static str = "state.ron";
 const CONFIG_FILENAME: &'static str = "cascade.toml";
 const SELECTIONS_FILENAME: &'static str = "selections.ron";
 const THEME_FILENAME: &'static str = "theme.toml";
@@ -117,7 +118,40 @@ pub fn theme(cascade_dir: impl AsRef<Path>) -> PathBuf {
     cascade_dir.as_ref().join(THEME_FILENAME)
 }
 
+pub fn app_state(cascade_dir: impl AsRef<Path>) -> PathBuf {
+    // %localappdata%/cascade/state.ron
+    cascade_dir.as_ref().join(STATE_FILENAME)
+}
+
+pub fn thug2_state(cascade_dir: impl AsRef<Path>) -> PathBuf {
+    // %localappdata%/cascade/thug2.ron
+    cascade_dir.as_ref().join("thug2.ron")
+}
+
+pub fn thaw_state(cascade_dir: impl AsRef<Path>) -> PathBuf {
+    // %localappdata%/cascade/thaw.ron
+    cascade_dir.as_ref().join("thaw.ron")
+}
+
 pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {
     // %localappdata%/cascade/cascade.log
     cascade_dir.as_ref().join(LOG_FILENAME)
+}
+
+// TODO: replace all above
+#[derive(Debug)]
+pub struct Paths {
+    pub app: PathBuf,
+    pub thug2: PathBuf,
+    pub thaw: PathBuf,
+}
+
+impl Paths {
+    pub fn new(data_dir: &PathBuf) -> Self {
+        Self {
+            app: data_dir.join("cascade.ron"),
+            thug2: data_dir.join("thug2.ron"),
+            thaw: data_dir.join("thaw.ron"),
+        }
+    }
 }

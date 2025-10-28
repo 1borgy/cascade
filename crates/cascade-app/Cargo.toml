@@ -8,7 +8,7 @@ name = "cascade"
 path = "src/main.rs"
 
 [dependencies]
-cascade-core = { workspace = true }
+cascade-core = { workspace = true, features = ["serde"] }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
 cascade-thug2 = { workspace = true }
@@ -27,6 +27,7 @@ thiserror = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }
+color-eyre.workspace = true
 
 [dependencies.iced]
 version = "0.13.1"

@@ -361,7 +361,7 @@ where
     let from_parsed = Cas::parse(&from_save)?;
     let transform = from_parsed.mask(flags);
 
-    for entry in core.list_entries()? {
+    for entry in core.entries()? {
         let name = entry.name();
         match modify_one(&entry, &transform) {
             Ok(_) => {

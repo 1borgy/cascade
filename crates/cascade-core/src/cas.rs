@@ -1,5 +1,7 @@
 use crate::save;
 
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Flags {
     pub summary: bool,
     pub trickset: bool,
