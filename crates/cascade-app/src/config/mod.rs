@@ -9,15 +9,7 @@ pub mod options;
 pub mod selections;
 pub mod theme;
 
-pub use options::Config;
-pub use selections::Selections;
 pub use theme::Theme;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Format {
-    Ron,
-    Toml,
-}
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum Error {

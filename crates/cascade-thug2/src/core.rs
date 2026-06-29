@@ -1,16 +1,8 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::{Cas, Entry, Error, Result, Save, entry::find_entries};
 
-pub struct Core {
-    cwd: PathBuf,
-}
-
-impl Core {
-    pub fn new(cwd: PathBuf) -> Self {
-        Self { cwd }
-    }
-}
+pub struct Core {}
 
 impl cascade_core::Core for Core {
     type Entry = Entry;
@@ -18,7 +10,7 @@ impl cascade_core::Core for Core {
     type Cas = Cas;
     type Error = Error;
 
-    fn entries(&self) -> Result<impl Iterator<Item = Entry>> {
-        find_entries(&self.cwd)
+    fn entries(&self, dir: impl AsRef<Path>) -> Result<impl Iterator<Item = Entry>> {
+        find_entries(dir)
     }
 }

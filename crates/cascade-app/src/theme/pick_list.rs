@@ -1,6 +1,6 @@
 use iced::{
+    Background, Border,
     widget::pick_list::{Catalog, Status, Style, StyleFn},
-    Background, Border, Color,
 };
 
 use crate::Theme;

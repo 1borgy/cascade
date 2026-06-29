@@ -11,6 +11,6 @@ mod save;
 pub use core::Core;
 
 pub use cas::Cas;
-pub use entry::Entry;
+pub use entry::{Entry, find_entries};
 pub use error::{Error, Result};
 pub use save::Save;

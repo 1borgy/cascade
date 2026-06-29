@@ -1,6 +1,6 @@
 use iced::{
-    widget::container::{transparent, Catalog, Style, StyleFn},
     Background, Border,
+    widget::container::{Catalog, Style, StyleFn, transparent},
 };
 
 use crate::Theme;

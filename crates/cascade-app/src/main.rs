@@ -5,8 +5,8 @@ use std::{io, path::Path};
 
 use app::Cascade;
 use fern::colors::{Color, ColoredLevelConfig};
-use iced::{window, Size};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use iced::{Size, window};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 mod app;
 mod config;
@@ -21,10 +21,7 @@ mod widget;
 pub use config::Theme;
 pub use error::{Error, Result};
 
-use crate::{
-    paths::Paths,
-    state::{AppState, GameStates, State},
-};
+use crate::{paths::Paths, state::State};
 
 pub type Renderer = iced::Renderer;
 pub type Element<'a, Message> = iced::Element<'a, Message, Theme, Renderer>;

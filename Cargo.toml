@@ -2,6 +2,12 @@
 members = ["crates/*"]
 resolver = "2"
 
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+repository = "https://github.com/1borgy/cascade"
+license = "MIT"
+
 [workspace.dependencies]
 cascade-core = { path = "crates/cascade-core" }
 cascade-crc = { path = "crates/cascade-crc" }

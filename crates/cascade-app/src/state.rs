@@ -7,10 +7,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    paths::{self, Paths},
-    Result,
-};
+use crate::{Result, paths::Paths};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Game {
@@ -25,8 +22,8 @@ impl Display for Game {
             f,
             "{}",
             match self {
-                Game::Thug2 => "thug2",
-                Game::Thaw => "thaw",
+                Game::Thug2 => "THUG2",
+                Game::Thaw => "THAW",
             }
         )
     }
@@ -67,8 +64,8 @@ impl AppState {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Selections(HashMap<String, bool>);
+// #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub type Selections = HashMap<String, bool>;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameState {
@@ -97,7 +94,7 @@ impl GameState {
 
         let contents = io::read_to_string(file)?;
 
-        let config = toml::from_str(contents.as_str())?;
+        let config = ron::from_str(contents.as_str())?;
 
         Ok(config)
     }

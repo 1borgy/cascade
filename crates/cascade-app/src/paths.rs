@@ -4,9 +4,7 @@ use std::{
     result,
 };
 
-const STATE_FILENAME: &'static str = "state.ron";
 const CONFIG_FILENAME: &'static str = "cascade.toml";
-const SELECTIONS_FILENAME: &'static str = "selections.ron";
 const THEME_FILENAME: &'static str = "theme.toml";
 const LOG_FILENAME: &'static str = "cascade.log";
 
@@ -97,40 +95,9 @@ pub fn cascade_dir() -> Result<PathBuf> {
         None => default_cascade_dir().or_else(|_| cwd()),
     }
 }
-
-pub fn backup_dir(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/backup/
-    cascade_dir.as_ref().join("backup")
-}
-
-pub fn config(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/cascade.toml
-    cascade_dir.as_ref().join(CONFIG_FILENAME)
-}
-
-pub fn selections(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/selections.ron
-    cascade_dir.as_ref().join(SELECTIONS_FILENAME)
-}
-
 pub fn theme(cascade_dir: impl AsRef<Path>) -> PathBuf {
     // %localappdata%/cascade/theme.toml
     cascade_dir.as_ref().join(THEME_FILENAME)
-}
-
-pub fn app_state(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/state.ron
-    cascade_dir.as_ref().join(STATE_FILENAME)
-}
-
-pub fn thug2_state(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/thug2.ron
-    cascade_dir.as_ref().join("thug2.ron")
-}
-
-pub fn thaw_state(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/thaw.ron
-    cascade_dir.as_ref().join("thaw.ron")
 }
 
 pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {
