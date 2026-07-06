@@ -6,8 +6,6 @@ use std::{
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use cascade_qb as qb;
 
-use crate::{Error, Result};
-
 pub const MAGIC_DATA: u32 = 0x39137FE5;
 pub const MAGIC_SUMMARY: u32 = 0x31D7999C;
 
@@ -25,13 +23,13 @@ impl fmt::Display for Magic {
 }
 
 impl TryFrom<u32> for Magic {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(value: u32) -> Result<Self> {
+    fn try_from(value: u32) -> cascade_core::Result<Self> {
         match value {
             MAGIC_DATA => Ok(Magic::Data),
             MAGIC_SUMMARY => Ok(Magic::Summary),
-            _ => Err(Error::UnknownChunkMagic(value)),
+            _ => Err(cascade_core::Error::UnknownChunkMagic(value)),
         }
     }
 }
@@ -53,7 +51,7 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn read(reader: &mut impl Read) -> Result<Self> {
+    pub fn read(reader: &mut impl Read) -> cascade_core::Result<Self> {
         let magic = reader.read_u32::<LittleEndian>()?.try_into()?;
         let size = reader.read_u32::<LittleEndian>()?;
         let structure = Box::new(qb::Structure::read(reader)?);
@@ -68,7 +66,7 @@ impl Chunk {
         })
     }
 
-    pub fn write(&self, writer: &mut impl Write) -> Result<()> {
+    pub fn write(&self, writer: &mut impl Write) -> cascade_core::Result<()> {
         let chunk_size = self.structure.raw_bytes()?.len();
         writer.write_u32::<LittleEndian>(self.magic.into())?;
         writer.write_u32::<LittleEndian>(chunk_size as u32)?;

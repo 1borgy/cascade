@@ -7,7 +7,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, paths::Paths};
+use crate::{
+    Result,
+    paths::{self, Paths},
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Game {
@@ -41,6 +44,10 @@ pub struct AppState {
     pub game: Game,
 }
 
+fn default_scale_factor() -> f64 {
+    1.
+}
+
 impl Default for AppState {
     fn default() -> Self {
         Self {
@@ -64,9 +71,6 @@ impl AppState {
     }
 }
 
-// #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub type Selections = HashMap<String, bool>;
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameState {
     #[serde(default)]
@@ -80,10 +84,7 @@ pub struct GameState {
     #[serde(default)]
     pub default_selection: bool,
     #[serde(default)]
-    pub selections: Selections,
-}
-fn default_scale_factor() -> f64 {
-    1.
+    pub selections: HashMap<String, bool>,
 }
 
 impl GameState {
@@ -98,6 +99,17 @@ impl GameState {
 
         Ok(config)
     }
+
+    pub fn detect(default_dir: Option<PathBuf>) -> Self {
+        if let Some(to_dir) = paths::detect_thugpro_dir() {
+            Self {
+                to_dir: Some(to_dir),
+                ..Default::default()
+            }
+        } else {
+            Default::default()
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -108,7 +120,8 @@ pub struct GameStates {
 
 impl GameStates {
     pub fn load(paths: &Paths) -> Self {
-        let thug2 = GameState::load(&paths.thug2).unwrap_or_default();
+        let thug2 =
+            GameState::load(&paths.thug2).unwrap_or(GameState::detect(paths::detect_thugpro_dir()));
         let thaw = GameState::load(&paths.thaw).unwrap_or_default();
 
         Self { thug2, thaw }

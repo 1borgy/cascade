@@ -1,19 +1,23 @@
-use std::path::PathBuf;
+use std::{
+    collections::hash_map,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
-use cascade_core::Entry;
 use iced::{
     Event, Font, Length, Padding, Subscription, Task,
     alignment::Vertical,
     event,
     font::Weight,
     keyboard::{self, key},
-    widget::{Column, Row, button, checkbox, container, pick_list, text, tooltip},
+    widget::{Column, Row, button, checkbox, container, pick_list, scrollable, text, tooltip},
 };
+use indexmap::IndexMap;
 use rfd::AsyncFileDialog;
 use serde::Serialize;
 
 use crate::{
-    Element, Result, Theme, fonts,
+    Element, Error, Result, Theme, fonts,
     paths::Paths,
     state::{Game, GameState, State},
     tasks, theme,
@@ -37,24 +41,28 @@ pub enum Message {
     ToggleDefaultSelection,
     ToggleSelection(String),
 
-    Start,
+    Run,
+    EntryProcessed(String, Result<()>),
 
     WroteFile(Result<usize>),
 }
 
-struct Context<Core: cascade_core::Core> {
+type LoadEntries = Box<dyn Fn(&PathBuf) -> Vec<cascade_core::Entry>>;
+// type LoadEntries = fn(&PathBuf) -> Vec<cascade_core::Entry>;
+
+struct Context {
     state_path: PathBuf,
     state: GameState,
-    core: Core,
-    entries: Vec<Core::Entry>,
+    load_entries: LoadEntries,
+    entries: Vec<cascade_core::Entry>,
 }
 
-impl<Core: cascade_core::Core> Context<Core> {
-    pub fn new(state_path: PathBuf, state: GameState, core: Core) -> Self {
+impl Context {
+    pub fn new(state_path: PathBuf, state: GameState, load_entries: LoadEntries) -> Self {
         let mut slf = Self {
             state_path,
             state,
-            core,
+            load_entries,
             entries: Vec::new(),
         };
         slf.refresh();
@@ -63,10 +71,10 @@ impl<Core: cascade_core::Core> Context<Core> {
 
     pub fn refresh(&mut self) {
         if let Some(to_dir) = &self.state.to_dir {
-            match self.core.entries(to_dir) {
-                Ok(entries) => self.entries = entries.collect(),
-                Err(err) => log::warn!("error refreshing entries: {}", err),
-            };
+            let entries = (self.load_entries)(to_dir);
+            if entries.len() > 0 {
+                self.entries = entries;
+            }
         }
     }
 
@@ -78,21 +86,35 @@ impl<Core: cascade_core::Core> Context<Core> {
     }
 }
 
+struct Contexts {
+    thug2: Context,
+    thaw: Context,
+}
+
 impl Contexts {
     pub fn new(state: &State, paths: &Paths) -> Contexts {
         Self {
             thug2: Context::new(
                 paths.thug2.clone(),
                 state.game.thug2.clone(),
-                cascade_thug2::Core {},
+                Box::new(cascade_thug2::find_entries),
             ),
             thaw: Context::new(
                 paths.thaw.clone(),
                 state.game.thaw.clone(),
-                cascade_thaw::Core {},
+                Box::new(cascade_thaw::find_entries),
             ),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+enum Status {
+    // i.e. last known status of processing an entry
+    InProgress,
+    Success,
+    #[expect(dead_code)]
+    Error(Error),
 }
 
 pub struct Cascade {
@@ -101,18 +123,22 @@ pub struct Cascade {
     state: State,
     contexts: Contexts,
 
+    queue: IndexMap<String, Status>,
+
     enabled: bool,
 }
 
 impl Cascade {
     pub fn new(paths: Paths, theme: Theme, state: State) -> (Self, Task<Message>) {
         let contexts = Contexts::new(&state, &paths);
+        let queue = IndexMap::new();
         (
             Cascade {
                 paths,
                 theme,
                 state,
                 contexts,
+                queue,
                 enabled: true,
             },
             Task::none(),
@@ -127,30 +153,24 @@ impl Cascade {
         self.write_state(self.state.app.clone(), self.paths.app.clone())
     }
 
-    fn context<Core: cascade_core::Core>(&self) -> &Context<Core> {
+    fn context(&self) -> &Context {
         match self.state.app.game {
             Game::Thug2 => &self.contexts.thug2,
             Game::Thaw => &self.contexts.thaw,
         }
     }
 
-    fn with_context_mut(&mut self, f: impl FnOnce(&mut GameState), refresh: bool) -> Task<Message> {
+    fn context_mut(&mut self) -> &mut Context {
         match self.state.app.game {
-            Game::Thug2 => {
-                f(&mut self.contexts.thug2.state);
-                if refresh {
-                    self.contexts.thug2.refresh();
-                }
-                self.contexts.thug2.write()
-            }
-            Game::Thaw => {
-                f(&mut self.contexts.thaw.state);
-                if refresh {
-                    self.contexts.thaw.refresh();
-                }
-                self.contexts.thaw.write()
-            }
+            Game::Thug2 => &mut self.contexts.thug2,
+            Game::Thaw => &mut self.contexts.thaw,
         }
+    }
+
+    fn with_context_mut(&mut self, f: impl FnOnce(&mut Context)) -> Task<Message> {
+        let context = self.context_mut();
+        f(context);
+        context.write()
     }
 
     pub fn scale_factor(&self) -> f64 {
@@ -195,29 +215,135 @@ impl Cascade {
             }
             Message::PickFrom => Task::perform(pick_source(), Message::SetFrom),
             Message::SetFrom(path) => match path {
-                Some(path) => self.with_context_mut(|s| s.from = Some(path), false),
+                Some(path) => self.with_context_mut(|context| context.state.from = Some(path)),
                 None => Task::none(),
             },
             Message::PickToDir => Task::perform(pick_to_dir(), Message::SetToDir),
             Message::SetToDir(dir) => match dir {
-                Some(dir) => self.with_context_mut(|s| s.to_dir = Some(dir), true),
+                Some(dir) => self.with_context_mut(|context| context.state.to_dir = Some(dir)),
                 None => Task::none(),
             },
             Message::SetTricksetFlag(selected) => {
-                self.with_context_mut(|s| s.trickset = selected, false)
+                self.with_context_mut(|context| context.state.trickset = selected)
             }
             Message::SetScalesFlag(selected) => {
-                self.with_context_mut(|s| s.scales = selected, false)
+                self.with_context_mut(|context| context.state.scales = selected)
             }
             Message::GameSelected(game) => {
                 self.state.app.game = game;
                 self.write_app_state()
             }
-            Message::ToggleDefaultSelection => {
-                self.with_context_mut(|s| s.default_selection = !s.default_selection, false)
+            Message::ToggleDefaultSelection => self.with_context_mut(|context| {
+                context.state.default_selection = !context.state.default_selection;
+                context.state.selections.clear();
+            }),
+            Message::ToggleSelection(name) => self.with_context_mut(|context| {
+                match context.state.selections.entry(name) {
+                    // If occupied, remove to use default selection
+                    hash_map::Entry::Occupied(entry) => {
+                        entry.remove();
+                    }
+                    // If vacant, insert since no longer using default selection
+                    hash_map::Entry::Vacant(entry) => {
+                        entry.insert(!context.state.default_selection);
+                    }
+                }
+            }),
+            Message::Run => self.run().unwrap_or_else(|err| {
+                log::error!("runtime error: {}", err);
+                Task::none()
+            }),
+            Message::EntryProcessed(name, result) => {
+                let new_status = match result {
+                    Ok(_) => Status::Success,
+                    Err(err) => {
+                        log::error!("error for entry {}: {:?}", name, err);
+                        Status::Error(err)
+                    }
+                };
+
+                self.queue.entry(name).and_modify(|status| {
+                    *status = new_status;
+                });
+
+                if self.queue.values().all(|entry| match entry {
+                    Status::InProgress => false,
+                    Status::Success | Status::Error(_) => true,
+                }) {
+                    self.enabled = true;
+                }
+
+                Task::none()
             }
-            Message::Start => Task::none(),
-            Message::ToggleSelection(_) => todo!(),
+        }
+    }
+
+    fn selected_entries<'a>(
+        &self,
+        context: &'a Context,
+    ) -> impl Iterator<Item = &'a cascade_core::Entry> {
+        context.entries.iter().filter(|entry| {
+            *context
+                .state
+                .selections
+                .get(entry.name())
+                .unwrap_or(&context.state.default_selection)
+        })
+    }
+
+    fn run(&mut self) -> Result<Task<Message>> {
+        let datetime = time::OffsetDateTime::now_local().unwrap_or(time::OffsetDateTime::now_utc());
+
+        let backup_dir = self.paths.backup.join(format!(
+            "{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
+            datetime.year(),
+            u8::from(datetime.month()),
+            datetime.day(),
+            datetime.hour(),
+            datetime.minute(),
+            datetime.second()
+        ));
+
+        // TODO: async?
+        log::info!("backing up to {:?}", backup_dir);
+        std::fs::create_dir_all(&backup_dir)?;
+
+        self.queue = self
+            .selected_entries(self.context())
+            .map(|entry| (entry.name().clone(), Status::InProgress))
+            .collect::<IndexMap<_, _>>();
+
+        self.enabled = false;
+        let context = self.context();
+        match &context.state.from {
+            Some(from) => {
+                let from_entry = cascade_core::Entry::create(from)?;
+                let flags = cascade_core::Flags {
+                    summary: false,
+                    trickset: context.state.trickset,
+                    scales: context.state.scales,
+                };
+
+                match self.state.app.game {
+                    Game::Thug2 => run::<cascade_thug2::Save, cascade_thug2::Cas>(
+                        from_entry,
+                        context.entries.iter().cloned(),
+                        &backup_dir,
+                        flags,
+                    ),
+                    Game::Thaw => run::<cascade_thaw::Save, cascade_thaw::Cas>(
+                        from_entry,
+                        context.entries.iter().cloned(),
+                        &backup_dir,
+                        flags,
+                    ),
+                }
+            }
+            None => {
+                self.enabled = true;
+                log::info!("cannot run with no 'from' entry");
+                Ok(Task::none())
+            }
         }
     }
 
@@ -233,7 +359,7 @@ impl Cascade {
             .into()
     }
 
-    pub fn view_left(&self, game_state: &GameState) -> Element<'_, Message> {
+    fn view_left(&self, context: &Context) -> Element<'_, Message> {
         Column::new()
             .spacing(10)
             .push(
@@ -246,14 +372,14 @@ impl Cascade {
                             .on_press_maybe(self.enabled.then_some(Message::PickFrom)),
                     )
                     .push(heading("from"))
-                    .push(self.view_path(&game_state.from)),
+                    .push(self.view_path(&context.state.from)),
             )
             .push(
-                checkbox("trickset", game_state.trickset)
+                checkbox("trickset", context.state.trickset)
                     .on_toggle_maybe(self.enabled.then_some(Message::SetTricksetFlag)),
             )
             .push(
-                checkbox("scales", game_state.scales)
+                checkbox("scales", context.state.scales)
                     .on_toggle_maybe(self.enabled.then_some(Message::SetScalesFlag)),
             )
             .push(pick_list(
@@ -266,7 +392,7 @@ impl Cascade {
             .into()
     }
 
-    fn view_center(&self, game_state: &GameState) -> Element<'_, Message> {
+    fn view_center(&self, context: &Context) -> Element<'_, Message> {
         Column::new()
             .spacing(10)
             .push(
@@ -279,11 +405,11 @@ impl Cascade {
                             .on_press_maybe(self.enabled.then_some(Message::PickToDir)),
                     )
                     .push(heading("to"))
-                    .push(self.view_path(&game_state.to_dir)),
+                    .push(self.view_path(&context.state.to_dir)),
             )
             .push(
                 button(
-                    text(match game_state.default_selection {
+                    text(match context.state.default_selection {
                         true => "deselect all",
                         false => "select all",
                     })
@@ -298,12 +424,31 @@ impl Cascade {
             )
             .width(Length::Fill)
             // TODO:
-            // .push(scrollable(self.view_entries()))
+            .push(scrollable(self.view_entries()))
             .into()
     }
 
-    fn view_entries<Core: cascade_core::Core>(&self) -> Element<Message> {
-        let context: &Context<Core> = self.context();
+    fn view_right(&self) -> Element<'_, Message> {
+        Column::new()
+            .spacing(10)
+            .push(
+                Row::new()
+                    .spacing(10)
+                    .align_y(Vertical::Center)
+                    .push(
+                        button(text("\u{E803}").font(fonts::ICONS_FONT))
+                            .on_press_maybe(self.enabled.then_some(Message::Run)),
+                    )
+                    .push(heading("queue")),
+            )
+            // TODO:
+            .push(self.view_queue())
+            .width(Length::Fill)
+            .into()
+    }
+
+    fn view_entries(&self) -> Element<'_, Message> {
+        let context: &Context = self.context();
         context
             .entries
             .iter()
@@ -312,7 +457,7 @@ impl Cascade {
                 let selected = context
                     .state
                     .selections
-                    .get(&name)
+                    .get(name)
                     .unwrap_or(&context.state.default_selection);
 
                 column.push(widget::entry::selectable(
@@ -364,23 +509,30 @@ impl Cascade {
         }
     }
 
-    fn view_right(&self) -> Element<'_, Message> {
-        Column::new()
-            .spacing(10)
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .align_y(Vertical::Center)
-                    .push(
-                        button(text("\u{E803}").font(fonts::ICONS_FONT))
-                            .on_press_maybe(self.enabled.then_some(Message::Start)),
-                    )
-                    .push(heading("queue")),
-            )
-            // TODO:
-            // .push(self.view_queue())
-            .width(Length::Fill)
-            .into()
+    fn view_queue(&self) -> Element<'_, Message> {
+        let context = self.context();
+        scrollable(self.selected_entries(context).fold(
+            Column::new().spacing(2),
+            |column, entry| {
+                let name = entry.name();
+                let style = match self.queue.get(name) {
+                    Some(Status::InProgress) => theme::button::entry_warning,
+                    Some(Status::Success) => theme::button::entry_success,
+                    Some(Status::Error(_)) => theme::button::entry_danger,
+                    None => theme::button::entry_queued,
+                };
+                column.push(
+                    button(text(name))
+                        .style(style)
+                        .on_press_maybe(
+                            self.enabled
+                                .then_some(Message::ToggleSelection(name.clone())),
+                        )
+                        .width(Length::Fill),
+                )
+            },
+        ))
+        .into()
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -405,7 +557,52 @@ async fn pick_to_dir() -> Option<PathBuf> {
     Some(AsyncFileDialog::new().pick_folder().await?.path().into())
 }
 
-struct Contexts {
-    thug2: Context<cascade_thug2::Core>,
-    thaw: Context<cascade_thaw::Core>,
+fn run<Save, Cas>(
+    from: cascade_core::Entry,
+    to: impl IntoIterator<Item = cascade_core::Entry>,
+    backup_dir: &PathBuf,
+    flags: cascade_core::Flags,
+) -> Result<Task<Message>>
+where
+    Save: cascade_core::Save + 'static,
+    Cas: cascade_core::Cas<Save = Save> + 'static,
+{
+    let transform = Arc::new(Cas::parse(&Save::read(&mut from.reader()?)?)?.mask(flags));
+
+    Ok(Task::batch(to.into_iter().map(|entry| {
+        Task::perform(
+            process_entry(entry.clone(), backup_dir.clone(), Arc::clone(&transform)),
+            move |result| Message::EntryProcessed(entry.name().clone(), result),
+        )
+    })))
+}
+
+async fn process_entry<Save, Cas>(
+    entry: cascade_core::Entry,
+    backup_dir: impl AsRef<Path>,
+    transform: Arc<Cas>,
+) -> Result<()>
+where
+    Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
+{
+    let backup_dir = backup_dir.as_ref();
+
+    let backup_entry = entry.with_dir(backup_dir);
+    let backup_path = backup_entry.path();
+
+    let path = entry.path();
+
+    log::info!("backing up {:?} to {:?}", path, backup_path);
+    tokio::fs::copy(&path, &backup_path).await?;
+
+    let mut save = Save::read(&mut entry.reader()?)?;
+
+    transform.modify(&mut save)?;
+    save.write(&mut entry.writer()?)?;
+    entry.rewrite_metadata()?;
+
+    log::info!("overwrote save at {:?}", path);
+
+    Ok(())
 }

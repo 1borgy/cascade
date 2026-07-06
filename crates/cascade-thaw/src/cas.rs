@@ -1,17 +1,27 @@
 use cascade_qb as qb;
 
-use crate::{Error, Result, chunk, id, save::Save};
+use crate::{chunk, id, save::Save};
 
-fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> Result<&qb::Symbol> {
-    Ok(parent.get(id).ok_or(Error::SymbolNotFound(id))?)
+fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> cascade_core::Result<&qb::Symbol> {
+    Ok(parent
+        .get(id)
+        .ok_or(cascade_core::Error::SymbolNotFound(id))?)
 }
 
-fn expect_symbol_mut(parent: &mut Box<qb::Structure>, id: qb::Id) -> Result<&mut qb::Symbol> {
-    Ok(parent.get_mut(id).ok_or(Error::SymbolNotFound(id))?)
+fn expect_symbol_mut(
+    parent: &mut Box<qb::Structure>,
+    id: qb::Id,
+) -> cascade_core::Result<&mut qb::Symbol> {
+    Ok(parent
+        .get_mut(id)
+        .ok_or(cascade_core::Error::SymbolNotFound(id))?)
 }
 
 // expect symbol and expect structure
-fn expect_structure(parent: &Box<qb::Structure>, id: qb::Id) -> Result<&Box<qb::Structure>> {
+fn expect_structure(
+    parent: &Box<qb::Structure>,
+    id: qb::Id,
+) -> cascade_core::Result<&Box<qb::Structure>> {
     let symbol = expect_symbol(&parent, id)?;
     Ok(symbol.value.try_as_structure()?)
 }
@@ -19,7 +29,7 @@ fn expect_structure(parent: &Box<qb::Structure>, id: qb::Id) -> Result<&Box<qb::
 fn expect_structure_mut(
     parent: &mut Box<qb::Structure>,
     id: qb::Id,
-) -> Result<&mut Box<qb::Structure>> {
+) -> cascade_core::Result<&mut Box<qb::Structure>> {
     let symbol = expect_symbol_mut(parent, id)?;
     Ok(symbol.value.try_as_structure_mut()?)
 }
@@ -73,14 +83,13 @@ pub struct Cas {
 }
 
 impl cascade_core::Cas for Cas {
-    type Error = Error;
     type Save = Save;
 
-    fn parse(save: &Self::Save) -> Result<Self> {
+    fn parse(save: &Self::Save) -> cascade_core::Result<Self> {
         Self::try_from(save)
     }
 
-    fn modify(&self, save: &mut Self::Save) -> Result<()> {
+    fn modify(&self, save: &mut Self::Save) -> cascade_core::Result<()> {
         self.modify(save)
     }
 
@@ -259,9 +268,9 @@ impl cascade_core::Cas for Cas {
 }
 
 impl TryFrom<&Save> for Cas {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(save: &Save) -> Result<Self> {
+    fn try_from(save: &Save) -> cascade_core::Result<Self> {
         match save {
             Save::Thaw(save) => Ok(Self {
                 summary: Summary::try_from(&save.summary)?,
@@ -276,7 +285,7 @@ impl TryFrom<&Save> for Cas {
 }
 
 impl Cas {
-    pub fn modify(&self, save: &mut Save) -> Result<()> {
+    pub fn modify(&self, save: &mut Save) -> cascade_core::Result<()> {
         self.summary.modify(match save {
             Save::Thaw(save) => &mut save.summary,
             Save::Rethawed(save) => &mut save.try_get_chunk_mut(chunk::Magic::Summary)?.structure,
@@ -302,9 +311,9 @@ impl Summary {
 }
 
 impl TryFrom<&Box<qb::Structure>> for Summary {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(summary: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(summary: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             filename: summary.get(id::FILENAME).cloned().into(),
         })
@@ -319,9 +328,9 @@ pub struct Data {
 }
 
 impl TryFrom<&Box<qb::Structure>> for Data {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(data: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(data: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             custom_skater: CustomSkater::try_from(expect_structure(data, id::CUSTOM_SKATER)?)?,
             story_skater: StorySkater::try_from(expect_structure(data, id::STORY_SKATER)?)?,
@@ -330,7 +339,7 @@ impl TryFrom<&Box<qb::Structure>> for Data {
 }
 
 impl Data {
-    pub fn modify(&self, data: &mut Box<qb::Structure>) -> Result<()> {
+    pub fn modify(&self, data: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
         self.custom_skater
             .modify(expect_structure_mut(data, id::CUSTOM_SKATER)?)?;
 
@@ -348,9 +357,9 @@ pub struct CustomSkater {
 }
 
 impl TryFrom<&Box<qb::Structure>> for CustomSkater {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(custom_skater: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(custom_skater: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             custom_classic: CustomClassic::try_from(expect_structure(
                 custom_skater,
@@ -361,7 +370,7 @@ impl TryFrom<&Box<qb::Structure>> for CustomSkater {
 }
 
 impl CustomSkater {
-    pub fn modify(&self, custom_skater: &mut Box<qb::Structure>) -> Result<()> {
+    pub fn modify(&self, custom_skater: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
         self.custom_classic
             .modify(expect_structure_mut(custom_skater, id::CUSTOM_CLASSIC)?)?;
         Ok(())
@@ -376,9 +385,9 @@ pub struct CustomClassic {
 }
 
 impl TryFrom<&Box<qb::Structure>> for CustomClassic {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(custom: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(custom: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             appearance: Appearance::try_from(expect_structure(custom, id::APPEARANCE)?)?,
             info: Info::try_from(expect_structure(custom, id::INFO)?)?,
@@ -387,7 +396,7 @@ impl TryFrom<&Box<qb::Structure>> for CustomClassic {
 }
 
 impl CustomClassic {
-    pub fn modify(&self, custom: &mut Box<qb::Structure>) -> Result<()> {
+    pub fn modify(&self, custom: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
         self.appearance
             .modify(expect_structure_mut(custom, id::APPEARANCE)?);
         self.info.modify(expect_structure_mut(custom, id::INFO)?);
@@ -404,9 +413,9 @@ pub struct Info {
 }
 
 impl TryFrom<&Box<qb::Structure>> for Info {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(info: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(info: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             trick_mapping: info.get(id::TRICK_MAPPING).cloned().into(),
             specials: info.get(id::SPECIALS).cloned().into(),
@@ -469,9 +478,9 @@ impl Appearance {
 }
 
 impl TryFrom<&Box<qb::Structure>> for Appearance {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(structure: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(structure: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             board_bone_group: structure.get(id::BOARD_BONE_GROUP).cloned().into(),
             feet_bone_group: structure.get(id::FEET_BONE_GROUP).cloned().into(),
@@ -498,9 +507,9 @@ pub struct StorySkater {
 }
 
 impl TryFrom<&Box<qb::Structure>> for StorySkater {
-    type Error = Error;
+    type Error = cascade_core::Error;
 
-    fn try_from(structure: &Box<qb::Structure>) -> Result<Self> {
+    fn try_from(structure: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
             tricks: structure.get(id::TRICKS).cloned().into(),
         })

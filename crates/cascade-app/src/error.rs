@@ -15,6 +15,9 @@ pub enum Error {
 
     #[error("toml deserialization error: {0}")]
     Toml(#[from] toml::de::Error),
+
+    #[error("core error: {0}")]
+    Core(#[from] cascade_core::Error),
 }
 
 impl From<io::Error> for Error {

@@ -3,10 +3,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use cascade_save as save;
 
-use crate::{
-    Error, Result,
-    chunk::{self, Chunk},
-};
+use crate::chunk::{self, Chunk};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -18,9 +15,7 @@ pub struct Rethawed {
 }
 
 impl cascade_core::Save for Rethawed {
-    type Error = Error;
-
-    fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
+    fn read(reader: &mut (impl Read + Seek)) -> cascade_core::Result<Self> {
         let magic = reader.read_u32::<LittleEndian>()?;
         let version = reader.read_u32::<LittleEndian>()?;
         let chunk_count = reader.read_u32::<LittleEndian>()?;
@@ -38,7 +33,7 @@ impl cascade_core::Save for Rethawed {
         })
     }
 
-    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
+    fn write(&self, writer: &mut (impl Write + Seek)) -> cascade_core::Result<()> {
         writer.write_u32::<LittleEndian>(self.magic)?;
         writer.write_u32::<LittleEndian>(self.version)?;
         writer.write_u32::<LittleEndian>(self.chunk_count)?;
@@ -58,18 +53,18 @@ impl Rethawed {
         self.chunks.iter().find(|chunk| chunk.magic == magic)
     }
 
-    pub fn try_get_chunk(&self, magic: chunk::Magic) -> Result<&Chunk> {
+    pub fn try_get_chunk(&self, magic: chunk::Magic) -> cascade_core::Result<&Chunk> {
         self.get_chunk(magic)
-            .ok_or_else(|| Error::ChunkNotFound(magic))
+            .ok_or_else(|| cascade_core::Error::ChunkNotFound(format!("{}", magic)))
     }
 
     pub fn get_chunk_mut(&mut self, magic: chunk::Magic) -> Option<&mut Chunk> {
         self.chunks.iter_mut().find(|chunk| chunk.magic == magic)
     }
 
-    pub fn try_get_chunk_mut(&mut self, magic: chunk::Magic) -> Result<&mut Chunk> {
+    pub fn try_get_chunk_mut(&mut self, magic: chunk::Magic) -> cascade_core::Result<&mut Chunk> {
         self.get_chunk_mut(magic)
-            .ok_or_else(|| Error::ChunkNotFound(magic))
+            .ok_or_else(|| cascade_core::Error::ChunkNotFound(format!("{}", magic)))
     }
 }
 
@@ -81,9 +76,7 @@ pub enum Save {
 }
 
 impl cascade_core::Save for Save {
-    type Error = Error;
-
-    fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
+    fn read(reader: &mut (impl Read + Seek)) -> cascade_core::Result<Self> {
         let magic = reader.read_u32::<LittleEndian>()?;
         reader.seek(SeekFrom::Start(0))?;
 
@@ -94,7 +87,7 @@ impl cascade_core::Save for Save {
         }
     }
 
-    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
+    fn write(&self, writer: &mut (impl Write + Seek)) -> cascade_core::Result<()> {
         match self {
             Save::Thaw(save) => Ok(save.write(writer)?),
             Save::Rethawed(save) => Ok(save.write(writer)?),

@@ -1,7 +1,7 @@
 use std::{
     fmt::Debug,
     fs,
-    io::{self, BufReader, BufWriter},
+    io::{BufReader, BufWriter},
     path::PathBuf,
 };
 
@@ -209,8 +209,8 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thug2 => modify::<thug2::Save, thug2::Cas, thug2::Error>(&from, &to, flags)?,
-                Game::Thaw => modify::<thaw::Save, thaw::Cas, thaw::Error>(&from, &to, flags)?,
+                Game::Thug2 => modify::<thug2::Save, thug2::Cas>(&from, &to, flags)?,
+                Game::Thaw => modify::<thaw::Save, thaw::Cas>(&from, &to, flags)?,
             }
 
             log::info!("successfully copied to {}", to.display());
@@ -235,8 +235,14 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thug2 => modify_bulk(&from, thug2::Core::new(to_dir), flags)?,
-                Game::Thaw => modify_bulk(&from, thaw::Core::new(to_dir), flags)?,
+                Game::Thug2 => modify_bulk::<thug2::Save, thug2::Cas>(
+                    &from,
+                    thug2::find_entries(&to_dir),
+                    flags,
+                )?,
+                Game::Thaw => {
+                    modify_bulk::<thaw::Save, thaw::Cas>(&from, thaw::find_entries(&to_dir), flags)?
+                }
             }
 
             Ok(())
@@ -297,15 +303,14 @@ fn main() -> color_eyre::Result<()> {
     }
 }
 
-fn modify<Save, Cas, Error>(
+fn modify<Save, Cas>(
     from: &PathBuf,
     to: &PathBuf,
     flags: cascade_core::Flags,
-) -> Result<(), Error>
+) -> Result<(), cascade_core::Error>
 where
-    Save: cascade_core::Save<Error = Error>,
-    Cas: cascade_core::Cas<Save = Save, Error = Error>,
-    Error: From<io::Error> + Debug,
+    Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
 {
     let from_file = fs::File::open(&from)?;
     let mut from_reader = BufReader::new(from_file);
@@ -326,23 +331,22 @@ where
     Ok(())
 }
 
-fn modify_bulk<Entry, Save, Cas, Error>(
+fn modify_bulk<Save, Cas>(
     from: &PathBuf,
-    core: impl cascade_core::Core<Entry = Entry, Save = Save, Cas = Cas, Error = Error>,
+    to_entries: Vec<cascade_core::Entry>,
     flags: cascade_core::Flags,
-) -> Result<(), Error>
+) -> cascade_core::Result<()>
 where
-    Entry: cascade_core::Entry<Error = Error>,
-    Save: cascade_core::Save<Error = Error>,
-    Cas: cascade_core::Cas<Save = Save, Error = Error>,
-    Error: From<io::Error> + Debug,
+    Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
 {
-    fn modify_one<Entry, Save, Cas, Error>(entry: &Entry, transform: &Cas) -> Result<(), Error>
+    fn modify_one<Save, Cas>(
+        entry: &cascade_core::Entry,
+        transform: &Cas,
+    ) -> cascade_core::Result<()>
     where
-        Entry: cascade_core::Entry<Error = Error>,
-        Save: cascade_core::Save<Error = Error>,
-        Cas: cascade_core::Cas<Save = Save, Error = Error>,
-        Error: From<io::Error> + Debug,
+        Save: cascade_core::Save,
+        Cas: cascade_core::Cas<Save = Save>,
     {
         let mut reader = entry.reader()?;
         let mut save = Save::read(&mut reader)?;
@@ -361,7 +365,7 @@ where
     let from_parsed = Cas::parse(&from_save)?;
     let transform = from_parsed.mask(flags);
 
-    for entry in core.entries()? {
+    for entry in to_entries {
         let name = entry.name();
         match modify_one(&entry, &transform) {
             Ok(_) => {

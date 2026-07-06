@@ -4,7 +4,13 @@ version = "0.0.1"
 edition = { workspace = true }
 
 [dependencies]
+cascade-qb = { workspace = true }
+cascade-save = { workspace = true }
+
+filetime = { workspace = true }
+log = { workspace = true }
 serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
 
 [features]
 serde = ["dep:serde"]

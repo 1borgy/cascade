@@ -16,12 +16,6 @@ pub enum Error {
     #[error("no home directory was found")]
     NoHomeDir,
 
-    #[error("no thug pro directory was found")]
-    NoThugProDir,
-
-    #[error("no thug pro saves directory was found")]
-    NoThugProSavesDir,
-
     #[error("could not determine cwd")]
     Cwd,
 }
@@ -43,23 +37,15 @@ fn local_appdata_dir() -> Result<PathBuf> {
     }
 }
 
-pub fn default_thugpro_dir() -> Result<PathBuf> {
-    // %localappdata%/THUG Pro/
-    let path = local_appdata_dir().map(|dir| dir.join("THUG Pro"))?;
-
-    match path.is_dir() {
-        true => Ok(path),
-        false => Err(Error::NoThugProDir),
-    }
-}
-
-pub fn default_saves_dir() -> Result<PathBuf> {
+pub fn detect_thugpro_dir() -> Option<PathBuf> {
     // %localappdata%/THUG Pro/Save/
-    let path = default_thugpro_dir().map(|dir| dir.join("Save"))?;
-
-    match path.is_dir() {
-        true => Ok(path),
-        false => Err(Error::NoThugProSavesDir),
+    if let Some(path) = local_appdata_dir()
+        .map(|dir| dir.join("THUG Pro").join("Save"))
+        .ok()
+    {
+        if path.is_dir() { Some(path) } else { None }
+    } else {
+        None
     }
 }
 
@@ -111,14 +97,16 @@ pub struct Paths {
     pub app: PathBuf,
     pub thug2: PathBuf,
     pub thaw: PathBuf,
+    pub backup: PathBuf,
 }
 
 impl Paths {
     pub fn new(data_dir: &PathBuf) -> Self {
         Self {
-            app: data_dir.join("cascade.ron"),
+            app: data_dir.join("app.ron"),
             thug2: data_dir.join("thug2.ron"),
             thaw: data_dir.join("thaw.ron"),
+            backup: data_dir.join("backup"),
         }
     }
 }

@@ -1,9 +1,9 @@
 use std::{fs, io, path::Path};
 
-use iced::{application, Color};
+use iced::{Color, application};
 use serde::{Deserialize, Serialize};
 
-use crate::config::{frappe, Error};
+use crate::{Result, config::frappe};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Theme {
@@ -41,7 +41,7 @@ impl Default for Theme {
 }
 
 impl Theme {
-    pub fn load(path: impl AsRef<Path>) -> Result<Self, Error> {
+    pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let file = fs::File::open(&path)?;
 
         log::info!("reading theme from {:?}", path.as_ref());

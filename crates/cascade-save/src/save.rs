@@ -5,7 +5,7 @@ use cascade_crc as crc;
 use cascade_qb as qb;
 use count_write::CountWrite;
 
-use crate::{Error, Result};
+use crate::Result;
 
 const SAVE_FILE_SIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
@@ -63,10 +63,10 @@ pub struct Save {
     pub data: Box<qb::Structure>,
 }
 
-impl cascade_core::Save for Save {
-    type Error = Error;
+impl Save {
+    // type Error = Error;
 
-    fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
+    pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         Ok(Self {
             header: Header::read(reader)?,
             summary: Box::new(qb::Structure::read(reader)?),
@@ -74,7 +74,7 @@ impl cascade_core::Save for Save {
         })
     }
 
-    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
+    pub fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
         let mut count_writer = CountWrite::from(writer);
 
         let header = self.calculate_header()?;
@@ -98,9 +98,7 @@ impl cascade_core::Save for Save {
 
         Ok(())
     }
-}
 
-impl Save {
     fn calculate_header(&self) -> Result<Header> {
         // TODO use seek instead of serializing save twice
         let mut summary_bytes = self.summary.raw_bytes()?;

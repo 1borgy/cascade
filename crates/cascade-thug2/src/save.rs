@@ -1,12 +1,10 @@
 use std::io::{Read, Seek, Write};
 
-use crate::{Error, Result};
+use cascade_core::Result;
 
 pub struct Save(cascade_save::Save);
 
 impl cascade_core::Save for Save {
-    type Error = Error;
-
     fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         Ok(Self(cascade_save::Save::read(reader)?))
     }

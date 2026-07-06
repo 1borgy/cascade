@@ -1,8 +1,8 @@
 use std::io::{Read, Seek, Write};
 
-pub trait Save: Sized {
-    type Error;
+use crate::Result;
 
-    fn read(reader: &mut (impl Read + Seek)) -> Result<Self, Self::Error>;
-    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<(), Self::Error>;
+pub trait Save: Sized {
+    fn read(reader: &mut (impl Read + Seek)) -> Result<Self>;
+    fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()>;
 }
