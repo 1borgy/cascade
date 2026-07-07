@@ -519,7 +519,7 @@ impl Cascade {
             tooltip(
                 container(text(filename))
                     .style(theme::container::monobox)
-                    .padding(5)
+                    .padding(10)
                     .align_y(Vertical::Center),
                 container(text(filepath))
                     .padding(5)
@@ -536,7 +536,7 @@ impl Cascade {
                     .padding(10)
                     .align_y(Vertical::Center),
                 container(text("please select a path"))
-                    .padding(10)
+                    .padding(5)
                     .align_y(Vertical::Center),
                 tooltip::Position::Bottom,
             )

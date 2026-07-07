@@ -7,8 +7,8 @@ mod save;
 pub use cas::Cas;
 pub use save::Save;
 
-pub const FILTER_NAME: &'static str = "THPS4 CAS file (.SKA)";
-pub const FILTER_EXTENSION: &'static str = ".SKA";
+pub const FILTER_NAME: &'static str = "THPS4 CAS";
+pub const FILTER_EXTENSION: &'static str = "SKA";
 
 pub fn find_entries(dir: &std::path::PathBuf) -> Vec<cascade_core::Entry> {
     cascade_core::find_entries(dir, FILTER_EXTENSION)
