@@ -7,8 +7,22 @@ use count_write::CountWrite;
 
 use crate::Result;
 
-const SAVE_FILE_SIZE: usize = 90112;
+const SAVE_FILESIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
+
+pub struct Padding {
+    pub filesize: usize,
+    pub pad_byte: u8,
+}
+
+impl Default for Padding {
+    fn default() -> Self {
+        Self {
+            filesize: SAVE_FILESIZE,
+            pad_byte: PADDING_BYTE,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -64,8 +78,6 @@ pub struct Save {
 }
 
 impl Save {
-    // type Error = Error;
-
     pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         Ok(Self {
             header: Header::read(reader)?,
@@ -74,7 +86,7 @@ impl Save {
         })
     }
 
-    pub fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
+    pub fn write(&self, writer: &mut (impl Write + Seek), padding: Padding) -> Result<()> {
         let mut count_writer = CountWrite::from(writer);
 
         let header = self.calculate_header()?;
@@ -85,16 +97,9 @@ impl Save {
 
         let num_bytes_written = count_writer.count() as usize;
 
-        let num_padding_bytes = SAVE_FILE_SIZE.saturating_sub(num_bytes_written);
+        let num_padding_bytes = padding.filesize.saturating_sub(num_bytes_written);
 
-        // log::info!(
-        //     "wrote {} bytes, padding with {} bytes to fill {} bytes",
-        //     num_bytes_written,
-        //     num_padding_bytes,
-        //     SAVE_FILE_SIZE
-        // );
-
-        count_writer.write(&vec![PADDING_BYTE; num_padding_bytes])?;
+        count_writer.write(&vec![padding.pad_byte; num_padding_bytes])?;
 
         Ok(())
     }

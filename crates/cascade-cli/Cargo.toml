@@ -29,6 +29,6 @@ thiserror = { workspace = true }
 
 [features]
 default = []
-dump = ["dep:cascade-lut", "dep:cascade-dump", "cascade-thaw/lut", "cascade-thug2/lut"]
+dump = ["dep:cascade-lut", "dep:cascade-dump", "cascade-thps4/lut", "cascade-thug2/lut", "cascade-thaw/lut"]
 ftp = ["dep:suppaftp"]
 wad = ["dep:cascade-wad"]

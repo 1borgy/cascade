@@ -14,6 +14,7 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Game {
+    Thps4,
     #[default]
     Thug2,
     Thaw,
@@ -25,6 +26,7 @@ impl Display for Game {
             f,
             "{}",
             match self {
+                Game::Thps4 => "THPS4",
                 Game::Thug2 => "THUG2",
                 Game::Thaw => "THAW",
             }
@@ -33,7 +35,7 @@ impl Display for Game {
 }
 
 impl Game {
-    pub const ALL: &'static [Self] = &[Self::Thug2, Self::Thaw];
+    pub const ALL: &'static [Self] = &[Self::Thps4, Self::Thug2, Self::Thaw];
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,7 +103,7 @@ impl GameState {
     }
 
     pub fn detect(default_dir: Option<PathBuf>) -> Self {
-        if let Some(to_dir) = paths::detect_thugpro_dir() {
+        if let Some(to_dir) = default_dir {
             Self {
                 to_dir: Some(to_dir),
                 ..Default::default()
@@ -114,17 +116,19 @@ impl GameState {
 
 #[derive(Debug)]
 pub struct GameStates {
+    pub thps4: GameState,
     pub thug2: GameState,
     pub thaw: GameState,
 }
 
 impl GameStates {
     pub fn load(paths: &Paths) -> Self {
+        let thps4 = GameState::load(&paths.thps4).unwrap_or_default();
         let thug2 =
             GameState::load(&paths.thug2).unwrap_or(GameState::detect(paths::detect_thugpro_dir()));
         let thaw = GameState::load(&paths.thaw).unwrap_or_default();
 
-        Self { thug2, thaw }
+        Self { thps4, thug2, thaw }
     }
 }
 

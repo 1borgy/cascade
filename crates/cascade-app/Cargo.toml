@@ -11,6 +11,7 @@ path = "src/main.rs"
 cascade-core = { workspace = true, features = ["serde"] }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
+cascade-thps4 = { workspace = true }
 cascade-thug2 = { workspace = true }
 cascade-thaw = { workspace = true }
 

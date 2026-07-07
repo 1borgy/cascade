@@ -95,18 +95,21 @@ pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {
 #[derive(Debug)]
 pub struct Paths {
     pub app: PathBuf,
+    pub backup: PathBuf,
+
+    pub thps4: PathBuf,
     pub thug2: PathBuf,
     pub thaw: PathBuf,
-    pub backup: PathBuf,
 }
 
 impl Paths {
     pub fn new(data_dir: &PathBuf) -> Self {
         Self {
             app: data_dir.join("app.ron"),
+            backup: data_dir.join("backup"),
+            thps4: data_dir.join("thps4.ron"),
             thug2: data_dir.join("thug2.ron"),
             thaw: data_dir.join("thaw.ron"),
-            backup: data_dir.join("backup"),
         }
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "cascade-test"
+version = "0.0.1"
+edition = { workspace = true }
+
+[dependencies]
+cascade-core = { workspace = true }
+
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }

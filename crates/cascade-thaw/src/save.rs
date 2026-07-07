@@ -5,6 +5,8 @@ use cascade_save as save;
 
 use crate::chunk::{self, Chunk};
 
+const SAVE_FILESIZE: usize = 180224;
+
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rethawed {
@@ -89,7 +91,13 @@ impl cascade_core::Save for Save {
 
     fn write(&self, writer: &mut (impl Write + Seek)) -> cascade_core::Result<()> {
         match self {
-            Save::Thaw(save) => Ok(save.write(writer)?),
+            Save::Thaw(save) => {
+                let padding = cascade_save::Padding {
+                    filesize: SAVE_FILESIZE,
+                    ..Default::default()
+                };
+                Ok(save.write(writer, padding)?)
+            }
             Save::Rethawed(save) => Ok(save.write(writer)?),
         }
     }

@@ -10,7 +10,7 @@ impl cascade_core::Save for Save {
     }
 
     fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
-        Ok(self.0.write(writer)?)
+        Ok(self.0.write(writer, cascade_save::Padding::default())?)
     }
 }
 

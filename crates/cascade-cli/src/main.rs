@@ -7,6 +7,8 @@ use std::{
 
 use cascade_core;
 #[cfg(feature = "dump")]
+use cascade_core::Save;
+#[cfg(feature = "dump")]
 use cascade_dump as dump;
 #[cfg(feature = "dump")]
 use cascade_lut::{self as lut, Lut};
@@ -30,6 +32,7 @@ struct App {
 #[derive(clap::ValueEnum, Clone, Default, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum Game {
+    Thps4,
     #[default]
     Thug2,
     Thaw,
@@ -145,7 +148,7 @@ enum Command {
 #[derive(serde::Serialize, serde::Deserialize)]
 enum Dump {
     Neversoft(dump::Save),
-    Rethawed(thaw::dump::Save),
+    Thaw(cascade_thaw::dump::Save),
 }
 
 fn main() -> color_eyre::Result<()> {
@@ -165,22 +168,24 @@ fn main() -> color_eyre::Result<()> {
         } => {
             use std::io::Write;
 
-            let entry = thug2::Entry::create(&input)?;
+            let entry = cascade_core::Entry::create(&input)?;
             let lut = Lut {
                 checksum: lut::Checksum::load()?,
                 compress: match game {
-                    Game::Thug2 => thug2::lut::load_compress()?,
-                    Game::Thaw => thaw::lut::load_compress()?,
+                    Game::Thps4 => cascade_thps4::lut::load_compress()?,
+                    Game::Thug2 => cascade_thug2::lut::load_compress()?,
+                    Game::Thaw => cascade_thaw::lut::load_compress()?,
                 },
             };
             let dump = match game {
-                Game::Thug2 => {
+                Game::Thug2 | Game::Thps4 => {
                     let save = cascade_save::Save::read(&mut entry.reader()?)?;
                     Dump::Neversoft(dump::Save::new(&save, &lut))
                 }
+                // THAW supports dumping either rethawed saves or neversoft saves
                 Game::Thaw => {
-                    let save = thaw::Save::read(&mut entry.reader()?)?;
-                    Dump::Rethawed(thaw::dump::Save::new(&save, &lut))
+                    let save = cascade_thaw::Save::read(&mut entry.reader()?)?;
+                    Dump::Thaw(cascade_thaw::dump::Save::new(&save, &lut))
                 }
             };
 
@@ -209,8 +214,11 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thug2 => modify::<thug2::Save, thug2::Cas>(&from, &to, flags)?,
-                Game::Thaw => modify::<thaw::Save, thaw::Cas>(&from, &to, flags)?,
+                Game::Thps4 => todo!(),
+                Game::Thug2 => {
+                    modify::<cascade_thug2::Save, cascade_thug2::Cas>(&from, &to, flags)?
+                }
+                Game::Thaw => modify::<cascade_thaw::Save, cascade_thaw::Cas>(&from, &to, flags)?,
             }
 
             log::info!("successfully copied to {}", to.display());
@@ -235,14 +243,17 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thug2 => modify_bulk::<thug2::Save, thug2::Cas>(
+                Game::Thps4 => todo!(),
+                Game::Thug2 => modify_bulk::<cascade_thug2::Save, cascade_thug2::Cas>(
                     &from,
-                    thug2::find_entries(&to_dir),
+                    cascade_thug2::find_entries(&to_dir),
                     flags,
                 )?,
-                Game::Thaw => {
-                    modify_bulk::<thaw::Save, thaw::Cas>(&from, thaw::find_entries(&to_dir), flags)?
-                }
+                Game::Thaw => modify_bulk::<cascade_thaw::Save, cascade_thaw::Cas>(
+                    &from,
+                    cascade_thaw::find_entries(&to_dir),
+                    flags,
+                )?,
             }
 
             Ok(())

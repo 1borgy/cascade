@@ -48,22 +48,31 @@ pub enum Message {
 }
 
 type LoadEntries = Box<dyn Fn(&PathBuf) -> Vec<cascade_core::Entry>>;
-// type LoadEntries = fn(&PathBuf) -> Vec<cascade_core::Entry>;
 
 struct Context {
     state_path: PathBuf,
     state: GameState,
     load_entries: LoadEntries,
     entries: Vec<cascade_core::Entry>,
+    filter_name: &'static str,
+    filter_extension: &'static str,
 }
 
 impl Context {
-    pub fn new(state_path: PathBuf, state: GameState, load_entries: LoadEntries) -> Self {
+    pub fn new(
+        state_path: PathBuf,
+        state: GameState,
+        load_entries: LoadEntries,
+        filter_name: &'static str,
+        filter_extension: &'static str,
+    ) -> Self {
         let mut slf = Self {
             state_path,
             state,
             load_entries,
             entries: Vec::new(),
+            filter_name,
+            filter_extension,
         };
         slf.refresh();
         slf
@@ -87,6 +96,7 @@ impl Context {
 }
 
 struct Contexts {
+    thps4: Context,
     thug2: Context,
     thaw: Context,
 }
@@ -94,15 +104,26 @@ struct Contexts {
 impl Contexts {
     pub fn new(state: &State, paths: &Paths) -> Contexts {
         Self {
+            thps4: Context::new(
+                paths.thps4.clone(),
+                state.game.thps4.clone(),
+                Box::new(cascade_thps4::find_entries),
+                cascade_thps4::FILTER_NAME,
+                cascade_thps4::FILTER_EXTENSION,
+            ),
             thug2: Context::new(
                 paths.thug2.clone(),
                 state.game.thug2.clone(),
                 Box::new(cascade_thug2::find_entries),
+                cascade_thug2::FILTER_NAME,
+                cascade_thug2::FILTER_EXTENSION,
             ),
             thaw: Context::new(
                 paths.thaw.clone(),
                 state.game.thaw.clone(),
                 Box::new(cascade_thaw::find_entries),
+                cascade_thaw::FILTER_NAME,
+                cascade_thaw::FILTER_EXTENSION,
             ),
         }
     }
@@ -113,7 +134,6 @@ enum Status {
     // i.e. last known status of processing an entry
     InProgress,
     Success,
-    #[expect(dead_code)]
     Error(Error),
 }
 
@@ -155,6 +175,7 @@ impl Cascade {
 
     fn context(&self) -> &Context {
         match self.state.app.game {
+            Game::Thps4 => &self.contexts.thps4,
             Game::Thug2 => &self.contexts.thug2,
             Game::Thaw => &self.contexts.thaw,
         }
@@ -162,6 +183,7 @@ impl Cascade {
 
     fn context_mut(&mut self) -> &mut Context {
         match self.state.app.game {
+            Game::Thps4 => &mut self.contexts.thps4,
             Game::Thug2 => &mut self.contexts.thug2,
             Game::Thaw => &mut self.contexts.thaw,
         }
@@ -213,14 +235,23 @@ impl Cascade {
                 log::error!("error writing file: {}", err);
                 Task::none()
             }
-            Message::PickFrom => Task::perform(pick_source(), Message::SetFrom),
+            Message::PickFrom => {
+                let context = self.context();
+                Task::perform(
+                    pick_source(context.filter_name, context.filter_extension),
+                    Message::SetFrom,
+                )
+            }
             Message::SetFrom(path) => match path {
                 Some(path) => self.with_context_mut(|context| context.state.from = Some(path)),
                 None => Task::none(),
             },
             Message::PickToDir => Task::perform(pick_to_dir(), Message::SetToDir),
             Message::SetToDir(dir) => match dir {
-                Some(dir) => self.with_context_mut(|context| context.state.to_dir = Some(dir)),
+                Some(dir) => self.with_context_mut(|context| {
+                    context.state.to_dir = Some(dir);
+                    context.refresh()
+                }),
                 None => Task::none(),
             },
             Message::SetTricksetFlag(selected) => {
@@ -325,6 +356,12 @@ impl Cascade {
                 };
 
                 match self.state.app.game {
+                    Game::Thps4 => run::<cascade_thps4::Save, cascade_thps4::Cas>(
+                        from_entry,
+                        context.entries.iter().cloned(),
+                        &backup_dir,
+                        flags,
+                    ),
                     Game::Thug2 => run::<cascade_thug2::Save, cascade_thug2::Cas>(
                         from_entry,
                         context.entries.iter().cloned(),
@@ -482,10 +519,10 @@ impl Cascade {
             tooltip(
                 container(text(filename))
                     .style(theme::container::monobox)
-                    .padding(10)
+                    .padding(5)
                     .align_y(Vertical::Center),
                 container(text(filepath))
-                    .padding(10)
+                    .padding(5)
                     .align_y(Vertical::Center),
                 tooltip::Position::Bottom,
             )
@@ -515,21 +552,50 @@ impl Cascade {
             Column::new().spacing(2),
             |column, entry| {
                 let name = entry.name();
-                let style = match self.queue.get(name) {
+                let status = self.queue.get(name);
+                let style = match status {
                     Some(Status::InProgress) => theme::button::entry_warning,
                     Some(Status::Success) => theme::button::entry_success,
                     Some(Status::Error(_)) => theme::button::entry_danger,
                     None => theme::button::entry_queued,
                 };
-                column.push(
-                    button(text(name))
-                        .style(style)
-                        .on_press_maybe(
-                            self.enabled
-                                .then_some(Message::ToggleSelection(name.clone())),
-                        )
-                        .width(Length::Fill),
-                )
+                let button = button(text(name))
+                    .style(style)
+                    .on_press_maybe(
+                        self.enabled
+                            .then_some(Message::ToggleSelection(name.clone())),
+                    )
+                    .width(Length::Fill);
+
+                let with_tooltip: Element<'_, Message> = match status {
+                    Some(Status::InProgress) => tooltip(
+                        button,
+                        container(text("In progress...")).padding(5),
+                        tooltip::Position::Bottom,
+                    )
+                    .gap(10)
+                    .style(theme::container::bordered)
+                    .into(),
+                    Some(Status::Success) => tooltip(
+                        button,
+                        container(text("Success!")).padding(5),
+                        tooltip::Position::Bottom,
+                    )
+                    .gap(10)
+                    .style(theme::container::bordered)
+                    .into(),
+                    Some(Status::Error(err)) => tooltip(
+                        button,
+                        container(text(format!("{}", err))).padding(5),
+                        tooltip::Position::Bottom,
+                    )
+                    .gap(10)
+                    .style(theme::container::bordered)
+                    .into(),
+                    None => button.into(),
+                };
+
+                column.push(with_tooltip)
             },
         ))
         .into()
@@ -540,11 +606,10 @@ impl Cascade {
     }
 }
 
-async fn pick_source() -> Option<PathBuf> {
-    // TODO: Change to -Progress for THAW
+async fn pick_source(name: &str, extension: &str) -> Option<PathBuf> {
     Some(
         AsyncFileDialog::new()
-            .add_filter("CAS file (.SKA)", &["SKA"])
+            .add_filter(name, &[extension])
             .add_filter("Any file", &[""])
             .pick_file()
             .await?

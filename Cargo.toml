@@ -15,12 +15,14 @@ cascade-dump = { path = "crates/cascade-dump" }
 cascade-lut = { path = "crates/cascade-lut" }
 cascade-qb = { path = "crates/cascade-qb" }
 cascade-save = { path = "crates/cascade-save" }
+cascade-test = { path = "crates/cascade-test" }
 cascade-thaw = { path = "crates/cascade-thaw" }
 cascade-thps4 = { path = "crates/cascade-thps4" }
 cascade-thug = { path = "crates/cascade-thug" }
 cascade-thug2 = { path = "crates/cascade-thug2" }
 cascade-wad = { path = "crates/cascade-wad" }
 
+anyhow = "1.0"
 byteorder = "1.4.3"
 clap = { version = "4.5.16", features = ["derive"] }
 color-eyre = "0.6"

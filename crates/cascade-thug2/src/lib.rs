@@ -1,11 +1,15 @@
 mod cas;
-mod entry;
 mod id;
 #[cfg(feature = "lut")]
 pub mod lut;
 mod save;
-// pub mod random;
 
 pub use cas::Cas;
-pub use entry::find_entries;
 pub use save::Save;
+
+pub const FILTER_NAME: &'static str = "THUG2 CAS file (.SKA)";
+pub const FILTER_EXTENSION: &'static str = ".SKA";
+
+pub fn find_entries(dir: &std::path::PathBuf) -> Vec<cascade_core::Entry> {
+    cascade_core::find_entries(dir, FILTER_EXTENSION)
+}

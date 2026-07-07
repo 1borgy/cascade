@@ -16,6 +16,11 @@ log = { workspace = true }
 serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
+[dev-dependencies]
+cascade-test = { workspace = true }
+
+tokio = { workspace = true, features = ["rt", "macros"]}
+
 [features]
 serde = ["dep:serde"]
 lut = ["dep:cascade-lut"]

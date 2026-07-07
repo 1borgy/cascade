@@ -43,6 +43,8 @@ impl Id {
     pub fn write<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
         match self {
             Id::Checksum(val) => writer.write_u32::<LittleEndian>(*val)?,
+            // TODO: force test failure; remove when done
+            // Id::Compress8(val) => (),
             Id::Compress8(val) => writer.write_u8(*val)?,
             Id::Compress16(val) => writer.write_u16::<LittleEndian>(*val)?,
             Id::None => (),

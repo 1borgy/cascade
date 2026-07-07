@@ -1,6 +1,6 @@
 use iced::{
-    widget::text_input::{Catalog, Status, Style, StyleFn},
     Background, Border, Color,
+    widget::text_input::{Catalog, Status, Style, StyleFn},
 };
 
 use crate::Theme;
@@ -50,6 +50,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
     }
 }
 
+#[expect(dead_code)]
 pub fn error(theme: &Theme, status: Status) -> Style {
     let primary = primary(theme, status);
 
