@@ -12,8 +12,6 @@ use cascade_core::Save;
 use cascade_dump as dump;
 #[cfg(feature = "dump")]
 use cascade_lut::{self as lut, Lut};
-use cascade_thaw as thaw;
-use cascade_thug2 as thug2;
 #[cfg(feature = "wad")]
 use cascade_wad::{hed, wad};
 use clap::{Parser, Subcommand};
