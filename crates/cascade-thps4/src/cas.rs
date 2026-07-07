@@ -109,6 +109,10 @@ impl cascade_core::Cas for Cas {
                             .unwrap_or_default(),
                     },
                     appearance: Appearance {
+                        board_bone_group: flags
+                            .scales
+                            .then_some(self.data.custom.appearance.board_bone_group)
+                            .unwrap_or_default(),
                         feet_bone_group: flags
                             .scales
                             .then_some(self.data.custom.appearance.feet_bone_group)
@@ -116,6 +120,10 @@ impl cascade_core::Cas for Cas {
                         hands_bone_group: flags
                             .scales
                             .then_some(self.data.custom.appearance.hands_bone_group)
+                            .unwrap_or_default(),
+                        head_bone_group: flags
+                            .scales
+                            .then_some(self.data.custom.appearance.head_bone_group)
                             .unwrap_or_default(),
                         lower_arm_bone_group: flags
                             .scales
@@ -145,7 +153,6 @@ impl cascade_core::Cas for Cas {
                             .scales
                             .then_some(self.data.custom.appearance.upper_leg_bone_group)
                             .unwrap_or_default(),
-                        ..Default::default()
                     },
                 },
             },
@@ -275,8 +282,10 @@ impl Info {
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Appearance {
+    pub board_bone_group: Item,
     pub feet_bone_group: Item,
     pub hands_bone_group: Item,
+    pub head_bone_group: Item,
     pub lower_arm_bone_group: Item,
     pub lower_leg_bone_group: Item,
     pub object_scaling: Item,
@@ -288,9 +297,12 @@ pub struct Appearance {
 
 impl Appearance {
     pub fn modify(&self, appearance: &mut qb::Structure) {
+        self.board_bone_group
+            .modify(appearance, id::BOARD_BONE_GROUP);
         self.feet_bone_group.modify(appearance, id::FEET_BONE_GROUP);
         self.hands_bone_group
             .modify(appearance, id::HANDS_BONE_GROUP);
+        self.head_bone_group.modify(appearance, id::HEAD_BONE_GROUP);
         self.lower_arm_bone_group
             .modify(appearance, id::LOWER_ARM_BONE_GROUP);
         self.lower_leg_bone_group
@@ -312,8 +324,10 @@ impl TryFrom<&Box<qb::Structure>> for Appearance {
 
     fn try_from(structure: &Box<qb::Structure>) -> cascade_core::Result<Self> {
         Ok(Self {
+            board_bone_group: structure.get(id::BOARD_BONE_GROUP).cloned().into(),
             feet_bone_group: structure.get(id::FEET_BONE_GROUP).cloned().into(),
             hands_bone_group: structure.get(id::HANDS_BONE_GROUP).cloned().into(),
+            head_bone_group: structure.get(id::HEAD_BONE_GROUP).cloned().into(),
             lower_arm_bone_group: structure.get(id::LOWER_ARM_BONE_GROUP).cloned().into(),
             lower_leg_bone_group: structure.get(id::LOWER_LEG_BONE_GROUP).cloned().into(),
             object_scaling: structure.get(id::OBJECT_SCALING).cloned().into(),

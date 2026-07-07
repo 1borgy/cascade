@@ -10,8 +10,10 @@ pub const INFO: qb::Id = qb::Id::Checksum(880201384);
 pub const TRICK_MAPPING: qb::Id = qb::Id::Compress8(62);
 pub const SPECIALS: qb::Id = qb::Id::Compress8(65);
 
+pub const BOARD_BONE_GROUP: qb::Id = qb::Id::Checksum(2892366140);
 pub const FEET_BONE_GROUP: qb::Id = qb::Id::Checksum(2203923552);
 pub const HANDS_BONE_GROUP: qb::Id = qb::Id::Checksum(2404412135);
+pub const HEAD_BONE_GROUP: qb::Id = qb::Id::Checksum(2727324543);
 pub const LOWER_ARM_BONE_GROUP: qb::Id = qb::Id::Checksum(2198704272);
 pub const LOWER_LEG_BONE_GROUP: qb::Id = qb::Id::Checksum(397715496);
 pub const OBJECT_SCALING: qb::Id = qb::Id::Checksum(2335261528);
