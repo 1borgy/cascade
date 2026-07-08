@@ -206,7 +206,6 @@ impl cascade_core::Cas for Cas {
                                         .upper_leg_bone_group,
                                 )
                                 .unwrap_or_default(),
-                            ..Default::default()
                         },
                     },
                 },
