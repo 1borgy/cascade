@@ -7,7 +7,6 @@ use count_write::CountWrite;
 
 use crate::Result;
 
-const SAVE_FILESIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
 
 pub struct Padding {
@@ -15,10 +14,19 @@ pub struct Padding {
     pub pad_byte: u8,
 }
 
-impl Default for Padding {
-    fn default() -> Self {
-        Self {
-            filesize: SAVE_FILESIZE,
+impl Padding {
+    pub fn calculate_static(filesize: usize) -> impl Fn(usize) -> Padding {
+        move |_| Padding {
+            filesize,
+            pad_byte: PADDING_BYTE,
+        }
+    }
+
+    pub fn calculate_dynamic(
+        calculate_filesize: impl Fn(usize) -> usize,
+    ) -> impl Fn(usize) -> Padding {
+        move |filesize| Padding {
+            filesize: calculate_filesize(filesize),
             pad_byte: PADDING_BYTE,
         }
     }
@@ -86,7 +94,11 @@ impl Save {
         })
     }
 
-    pub fn write(&self, writer: &mut (impl Write + Seek), padding: Padding) -> Result<()> {
+    pub fn write(
+        &self,
+        writer: &mut (impl Write + Seek),
+        calculate_padding: impl Fn(usize) -> Padding,
+    ) -> Result<()> {
         let mut count_writer = CountWrite::from(writer);
 
         let header = self.calculate_header()?;
@@ -96,7 +108,7 @@ impl Save {
         self.data.write(&mut count_writer)?;
 
         let num_bytes_written = count_writer.count() as usize;
-
+        let padding = calculate_padding(num_bytes_written);
         let num_padding_bytes = padding.filesize.saturating_sub(num_bytes_written);
 
         count_writer.write(&vec![padding.pad_byte; num_padding_bytes])?;

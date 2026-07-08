@@ -2,7 +2,7 @@ use std::io::{Read, Seek, Write};
 
 use cascade_core::Result;
 
-const SAVE_FILESIZE: usize = 2048;
+const SAVE_FILESIZE: usize = 90112;
 
 pub struct Save(cascade_save::Save);
 

@@ -31,6 +31,7 @@ struct App {
 #[serde(rename_all = "kebab-case")]
 enum Game {
     Thps4,
+    Thug,
     #[default]
     Thug2,
     Thaw,
@@ -171,12 +172,13 @@ fn main() -> color_eyre::Result<()> {
                 checksum: lut::Checksum::load()?,
                 compress: match game {
                     Game::Thps4 => cascade_thps4::lut::load_compress()?,
+                    Game::Thug => cascade_thug::lut::load_compress()?,
                     Game::Thug2 => cascade_thug2::lut::load_compress()?,
                     Game::Thaw => cascade_thaw::lut::load_compress()?,
                 },
             };
             let dump = match game {
-                Game::Thug2 | Game::Thps4 => {
+                Game::Thug | Game::Thug2 | Game::Thps4 => {
                     let save = cascade_save::Save::read(&mut entry.reader()?)?;
                     Dump::Neversoft(dump::Save::new(&save, &lut))
                 }
@@ -212,7 +214,10 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thps4 => todo!(),
+                Game::Thps4 => {
+                    modify::<cascade_thps4::Save, cascade_thps4::Cas>(&from, &to, flags)?
+                }
+                Game::Thug => modify::<cascade_thug::Save, cascade_thug::Cas>(&from, &to, flags)?,
                 Game::Thug2 => {
                     modify::<cascade_thug2::Save, cascade_thug2::Cas>(&from, &to, flags)?
                 }
@@ -241,7 +246,16 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
-                Game::Thps4 => todo!(),
+                Game::Thps4 => modify_bulk::<cascade_thps4::Save, cascade_thps4::Cas>(
+                    &from,
+                    cascade_thps4::find_entries(&to_dir),
+                    flags,
+                )?,
+                Game::Thug => modify_bulk::<cascade_thug::Save, cascade_thug::Cas>(
+                    &from,
+                    cascade_thug::find_entries(&to_dir),
+                    flags,
+                )?,
                 Game::Thug2 => modify_bulk::<cascade_thug2::Save, cascade_thug2::Cas>(
                     &from,
                     cascade_thug2::find_entries(&to_dir),

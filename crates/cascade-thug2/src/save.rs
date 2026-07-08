@@ -2,6 +2,8 @@ use std::io::{Read, Seek, Write};
 
 use cascade_core::Result;
 
+const SAVE_FILESIZE: usize = 90112;
+
 pub struct Save(cascade_save::Save);
 
 impl cascade_core::Save for Save {
@@ -10,7 +12,10 @@ impl cascade_core::Save for Save {
     }
 
     fn write(&self, writer: &mut (impl Write + Seek)) -> Result<()> {
-        Ok(self.0.write(writer, cascade_save::Padding::default())?)
+        Ok(self.0.write(
+            writer,
+            cascade_save::Padding::calculate_static(SAVE_FILESIZE),
+        )?)
     }
 }
 

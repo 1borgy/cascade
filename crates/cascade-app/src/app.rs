@@ -47,15 +47,21 @@ pub enum Message {
     WroteFile(Result<usize>),
 }
 
-type LoadEntries = Box<dyn Fn(&PathBuf) -> Vec<cascade_core::Entry>>;
+// type LoadEntries = Box<dyn Fn(&PathBuf) -> Vec<cascade_core::Entry>>;
+type LoadEntries = fn(&PathBuf) -> Vec<cascade_core::Entry>;
+
+#[derive(Clone)]
+struct Filter {
+    name: &'static str,
+    extension: &'static str,
+}
 
 struct Context {
     state_path: PathBuf,
     state: GameState,
     load_entries: LoadEntries,
     entries: Vec<cascade_core::Entry>,
-    filter_name: &'static str,
-    filter_extension: &'static str,
+    filter: Option<Filter>,
 }
 
 impl Context {
@@ -63,16 +69,14 @@ impl Context {
         state_path: PathBuf,
         state: GameState,
         load_entries: LoadEntries,
-        filter_name: &'static str,
-        filter_extension: &'static str,
+        filter: Option<Filter>,
     ) -> Self {
         let mut slf = Self {
             state_path,
             state,
             load_entries,
             entries: Vec::new(),
-            filter_name,
-            filter_extension,
+            filter,
         };
         slf.refresh();
         slf
@@ -97,6 +101,7 @@ impl Context {
 
 struct Contexts {
     thps4: Context,
+    thug: Context,
     thug2: Context,
     thaw: Context,
 }
@@ -107,23 +112,38 @@ impl Contexts {
             thps4: Context::new(
                 paths.thps4.clone(),
                 state.game.thps4.clone(),
-                Box::new(cascade_thps4::find_entries),
-                cascade_thps4::FILTER_NAME,
-                cascade_thps4::FILTER_EXTENSION,
+                cascade_thps4::find_entries,
+                Some(Filter {
+                    name: cascade_thps4::FILTER_NAME,
+                    extension: cascade_thps4::FILTER_EXTENSION,
+                }),
+            ),
+            thug: Context::new(
+                paths.thug.clone(),
+                state.game.thug.clone(),
+                cascade_thug::find_entries,
+                Some(Filter {
+                    name: cascade_thug::FILTER_NAME,
+                    extension: cascade_thug::FILTER_EXTENSION,
+                }),
             ),
             thug2: Context::new(
                 paths.thug2.clone(),
                 state.game.thug2.clone(),
-                Box::new(cascade_thug2::find_entries),
-                cascade_thug2::FILTER_NAME,
-                cascade_thug2::FILTER_EXTENSION,
+                cascade_thug2::find_entries,
+                Some(Filter {
+                    name: cascade_thug2::FILTER_NAME,
+                    extension: cascade_thug2::FILTER_EXTENSION,
+                }),
             ),
             thaw: Context::new(
                 paths.thaw.clone(),
                 state.game.thaw.clone(),
-                Box::new(cascade_thaw::find_entries),
-                cascade_thaw::FILTER_NAME,
-                cascade_thaw::FILTER_EXTENSION,
+                cascade_thaw::find_entries,
+                Some(Filter {
+                    name: cascade_thaw::FILTER_NAME,
+                    extension: cascade_thaw::FILTER_EXTENSION,
+                }),
             ),
         }
     }
@@ -176,6 +196,7 @@ impl Cascade {
     fn context(&self) -> &Context {
         match self.state.app.game {
             Game::Thps4 => &self.contexts.thps4,
+            Game::Thug => &self.contexts.thug,
             Game::Thug2 => &self.contexts.thug2,
             Game::Thaw => &self.contexts.thaw,
         }
@@ -184,6 +205,7 @@ impl Cascade {
     fn context_mut(&mut self) -> &mut Context {
         match self.state.app.game {
             Game::Thps4 => &mut self.contexts.thps4,
+            Game::Thug => &mut self.contexts.thug,
             Game::Thug2 => &mut self.contexts.thug2,
             Game::Thaw => &mut self.contexts.thaw,
         }
@@ -237,10 +259,7 @@ impl Cascade {
             }
             Message::PickFrom => {
                 let context = self.context();
-                Task::perform(
-                    pick_source(context.filter_name, context.filter_extension),
-                    Message::SetFrom,
-                )
+                Task::perform(pick_source(context.filter.clone()), Message::SetFrom)
             }
             Message::SetFrom(path) => match path {
                 Some(path) => self.with_context_mut(|context| context.state.from = Some(path)),
@@ -339,8 +358,13 @@ impl Cascade {
         log::info!("backing up to {:?}", backup_dir);
         std::fs::create_dir_all(&backup_dir)?;
 
-        self.queue = self
+        let selected_entries = self
             .selected_entries(self.context())
+            .cloned()
+            .collect::<Vec<_>>();
+
+        self.queue = selected_entries
+            .iter()
             .map(|entry| (entry.name().clone(), Status::InProgress))
             .collect::<IndexMap<_, _>>();
 
@@ -358,19 +382,25 @@ impl Cascade {
                 match self.state.app.game {
                     Game::Thps4 => run::<cascade_thps4::Save, cascade_thps4::Cas>(
                         from_entry,
-                        context.entries.iter().cloned(),
+                        selected_entries,
+                        &backup_dir,
+                        flags,
+                    ),
+                    Game::Thug => run::<cascade_thug::Save, cascade_thug::Cas>(
+                        from_entry,
+                        selected_entries,
                         &backup_dir,
                         flags,
                     ),
                     Game::Thug2 => run::<cascade_thug2::Save, cascade_thug2::Cas>(
                         from_entry,
-                        context.entries.iter().cloned(),
+                        selected_entries,
                         &backup_dir,
                         flags,
                     ),
                     Game::Thaw => run::<cascade_thaw::Save, cascade_thaw::Cas>(
                         from_entry,
-                        context.entries.iter().cloned(),
+                        selected_entries,
                         &backup_dir,
                         flags,
                     ),
@@ -606,16 +636,16 @@ impl Cascade {
     }
 }
 
-async fn pick_source(name: &str, extension: &str) -> Option<PathBuf> {
-    Some(
-        AsyncFileDialog::new()
-            .add_filter(name, &[extension])
+async fn pick_source(filter: Option<Filter>) -> Option<PathBuf> {
+    let mut fd = AsyncFileDialog::new();
+
+    if let Some(filter) = filter {
+        fd = fd
+            .add_filter(filter.name, &[filter.extension])
             .add_filter("Any file", &[""])
-            .pick_file()
-            .await?
-            .path()
-            .into(),
-    )
+    }
+
+    Some(fd.pick_file().await?.path().into())
 }
 
 async fn pick_to_dir() -> Option<PathBuf> {

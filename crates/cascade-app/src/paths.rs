@@ -98,6 +98,7 @@ pub struct Paths {
     pub backup: PathBuf,
 
     pub thps4: PathBuf,
+    pub thug: PathBuf,
     pub thug2: PathBuf,
     pub thaw: PathBuf,
 }
@@ -108,6 +109,7 @@ impl Paths {
             app: data_dir.join("app.ron"),
             backup: data_dir.join("backup"),
             thps4: data_dir.join("thps4.ron"),
+            thug: data_dir.join("thug.ron"),
             thug2: data_dir.join("thug2.ron"),
             thaw: data_dir.join("thaw.ron"),
         }

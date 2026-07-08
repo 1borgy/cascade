@@ -5,7 +5,8 @@ use cascade_save as save;
 
 use crate::chunk::{self, Chunk};
 
-const SAVE_FILESIZE: usize = 180224;
+const SAVE_FILESIZE_1: usize = 98304;
+const SAVE_FILESIZE_2: usize = 180224;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -92,10 +93,18 @@ impl cascade_core::Save for Save {
     fn write(&self, writer: &mut (impl Write + Seek)) -> cascade_core::Result<()> {
         match self {
             Save::Thaw(save) => {
-                let padding = cascade_save::Padding {
-                    filesize: SAVE_FILESIZE,
-                    ..Default::default()
-                };
+                let padding = cascade_save::Padding::calculate_dynamic(|filesize| {
+                    // Neversoft THAW saves observed to pad to multiple different sizes
+                    // e.g. 85K file will be padded to 98K, 135K file will be padded to 180K
+                    if filesize < SAVE_FILESIZE_1 {
+                        SAVE_FILESIZE_1
+                    } else if filesize < SAVE_FILESIZE_2 {
+                        SAVE_FILESIZE_2
+                    } else {
+                        log::error!("filesize {} greater than expected", filesize);
+                        SAVE_FILESIZE_2
+                    }
+                });
                 Ok(save.write(writer, padding)?)
             }
             Save::Rethawed(save) => Ok(save.write(writer)?),

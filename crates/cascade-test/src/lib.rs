@@ -6,6 +6,16 @@ use std::{
 
 use anyhow::anyhow;
 
+pub fn entries_dir(subdir: impl AsRef<Path>) -> PathBuf {
+    env::current_dir()
+        .expect("could not get cwd")
+        .join("..")
+        .join("..")
+        .join("assets")
+        .join("saves")
+        .join(subdir)
+}
+
 fn diff_bytes(input_bytes: &Vec<u8>, output_bytes: &Vec<u8>) -> anyhow::Result<()> {
     if input_bytes.len() == output_bytes.len() {
         let mut num_diff_bytes = 0;
@@ -30,16 +40,20 @@ fn diff_bytes(input_bytes: &Vec<u8>, output_bytes: &Vec<u8>) -> anyhow::Result<(
     }
 }
 
-fn round_trip_entry<Save>(entry: &cascade_core::Entry) -> anyhow::Result<()>
+fn round_trip_entry<Save, Cas>(entry: &cascade_core::Entry) -> anyhow::Result<()>
 where
     Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
 {
     let mut reader = entry.reader()?;
     let mut input_bytes = Vec::new();
     reader.read_to_end(&mut input_bytes)?;
     let mut input_cursor = Cursor::new(&input_bytes);
 
-    let save = Save::read(&mut input_cursor)?;
+    let mut save = Save::read(&mut input_cursor)?;
+
+    let cas = Cas::parse(&save)?;
+    cas.modify(&mut save)?;
 
     let mut output_bytes = Vec::new();
     let mut output_cursor = Cursor::new(&mut output_bytes);
@@ -48,13 +62,14 @@ where
     diff_bytes(&input_bytes, &output_bytes).map_err(|err| anyhow!("round_trip_entry: {}", err))
 }
 
-fn test_entry<Save>(entry: &cascade_core::Entry) -> anyhow::Result<()>
+fn test_entry<Save, Cas>(entry: &cascade_core::Entry) -> anyhow::Result<()>
 where
     Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
 {
     let mut errors = Vec::new();
 
-    for result in vec![round_trip_entry::<Save>(entry)] {
+    for result in vec![round_trip_entry::<Save, Cas>(entry)] {
         match result {
             Ok(_) => {}
             Err(err) => errors.push(err),
@@ -68,20 +83,21 @@ where
             .collect::<Vec<_>>()
             .join("\r\n");
 
-        Err(anyhow!("{}\n{}", entry.name(), failures))
+        Err(anyhow!("[{}]\n{}", entry.name(), failures))
     } else {
         Ok(())
     }
 }
 
-pub async fn test_entries<Save>(entries: impl IntoIterator<Item = cascade_core::Entry>)
+pub async fn test_entries<Save, Cas>(entries: impl IntoIterator<Item = cascade_core::Entry>)
 where
     Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
 {
     let mut handles = Vec::new();
     for entry in entries.into_iter() {
         handles.push(tokio::task::spawn_blocking(move || {
-            test_entry::<Save>(&entry)
+            test_entry::<Save, Cas>(&entry)
         }))
     }
 
@@ -104,16 +120,6 @@ where
             .collect::<Vec<_>>()
             .join("\n\n");
 
-        println!("{}", message)
+        assert!(false, "\n{}\n", message)
     }
-}
-
-pub fn entries_dir(subdir: impl AsRef<Path>) -> PathBuf {
-    env::current_dir()
-        .expect("could not get cwd")
-        .join("..")
-        .join("..")
-        .join("assets")
-        .join("saves")
-        .join(subdir)
 }
