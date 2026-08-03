@@ -85,7 +85,7 @@ impl Context {
     pub fn refresh(&mut self) {
         if let Some(to_dir) = &self.state.to_dir {
             let entries = (self.load_entries)(to_dir);
-            if entries.len() > 0 {
+            if !entries.is_empty() {
                 self.entries = entries;
             }
         }
@@ -100,6 +100,7 @@ impl Context {
 }
 
 struct Contexts {
+    thps3: Context,
     thps4: Context,
     thug: Context,
     thug2: Context,
@@ -109,6 +110,15 @@ struct Contexts {
 impl Contexts {
     pub fn new(state: &State, paths: &Paths) -> Contexts {
         Self {
+            thps3: Context::new(
+                paths.thps3.clone(),
+                state.game.thps3.clone(),
+                cascade_thps3::find_entries,
+                Some(Filter {
+                    name: cascade_thps3::FILTER_NAME,
+                    extension: cascade_thps3::FILTER_EXTENSION,
+                }),
+            ),
             thps4: Context::new(
                 paths.thps4.clone(),
                 state.game.thps4.clone(),
@@ -195,6 +205,7 @@ impl Cascade {
 
     fn context(&self) -> &Context {
         match self.state.app.game {
+            Game::Thps3 => &self.contexts.thps3,
             Game::Thps4 => &self.contexts.thps4,
             Game::Thug => &self.contexts.thug,
             Game::Thug2 => &self.contexts.thug2,
@@ -204,6 +215,7 @@ impl Cascade {
 
     fn context_mut(&mut self) -> &mut Context {
         match self.state.app.game {
+            Game::Thps3 => &mut self.contexts.thps3,
             Game::Thps4 => &mut self.contexts.thps4,
             Game::Thug => &mut self.contexts.thug,
             Game::Thug2 => &mut self.contexts.thug2,
@@ -217,7 +229,7 @@ impl Cascade {
         context.write()
     }
 
-    pub fn scale_factor(&self) -> f64 {
+    pub fn scale_factor(&self) -> f32 {
         self.state.app.scale_factor
     }
 
@@ -261,18 +273,24 @@ impl Cascade {
                 let context = self.context();
                 Task::perform(pick_source(context.filter.clone()), Message::SetFrom)
             }
-            Message::SetFrom(path) => match path {
-                Some(path) => self.with_context_mut(|context| context.state.from = Some(path)),
-                None => Task::none(),
-            },
+            Message::SetFrom(path) => {
+                if let Some(path) = path {
+                    self.with_context_mut(|context| context.state.from = Some(path))
+                } else {
+                    Task::none()
+                }
+            }
             Message::PickToDir => Task::perform(pick_to_dir(), Message::SetToDir),
-            Message::SetToDir(dir) => match dir {
-                Some(dir) => self.with_context_mut(|context| {
-                    context.state.to_dir = Some(dir);
-                    context.refresh()
-                }),
-                None => Task::none(),
-            },
+            Message::SetToDir(dir) => {
+                if let Some(dir) = dir {
+                    self.with_context_mut(|context| {
+                        context.state.to_dir = Some(dir);
+                        context.refresh()
+                    })
+                } else {
+                    Task::none()
+                }
+            }
             Message::SetTricksetFlag(selected) => {
                 self.with_context_mut(|context| context.state.trickset = selected)
             }
@@ -370,47 +388,50 @@ impl Cascade {
 
         self.enabled = false;
         let context = self.context();
-        match &context.state.from {
-            Some(from) => {
-                let from_entry = cascade_core::Entry::create(from)?;
-                let flags = cascade_core::Flags {
-                    summary: false,
-                    trickset: context.state.trickset,
-                    scales: context.state.scales,
-                };
+        if let Some(from) = &context.state.from {
+            let from_entry = cascade_core::Entry::create(from)?;
+            let flags = cascade_core::Flags {
+                summary: false,
+                trickset: context.state.trickset,
+                scales: context.state.scales,
+            };
 
-                match self.state.app.game {
-                    Game::Thps4 => run::<cascade_thps4::Save, cascade_thps4::Cas>(
-                        from_entry,
-                        selected_entries,
-                        &backup_dir,
-                        flags,
-                    ),
-                    Game::Thug => run::<cascade_thug::Save, cascade_thug::Cas>(
-                        from_entry,
-                        selected_entries,
-                        &backup_dir,
-                        flags,
-                    ),
-                    Game::Thug2 => run::<cascade_thug2::Save, cascade_thug2::Cas>(
-                        from_entry,
-                        selected_entries,
-                        &backup_dir,
-                        flags,
-                    ),
-                    Game::Thaw => run::<cascade_thaw::Save, cascade_thaw::Cas>(
-                        from_entry,
-                        selected_entries,
-                        &backup_dir,
-                        flags,
-                    ),
-                }
+            match self.state.app.game {
+                Game::Thps3 => run::<cascade_thps3::Save, cascade_thps3::Cas>(
+                    from_entry,
+                    selected_entries,
+                    &backup_dir,
+                    flags,
+                ),
+                Game::Thps4 => run::<cascade_thps4::Save, cascade_thps4::Cas>(
+                    from_entry,
+                    selected_entries,
+                    &backup_dir,
+                    flags,
+                ),
+                Game::Thug => run::<cascade_thug::Save, cascade_thug::Cas>(
+                    from_entry,
+                    selected_entries,
+                    &backup_dir,
+                    flags,
+                ),
+                Game::Thug2 => run::<cascade_thug2::Save, cascade_thug2::Cas>(
+                    from_entry,
+                    selected_entries,
+                    &backup_dir,
+                    flags,
+                ),
+                Game::Thaw => run::<cascade_thaw::Save, cascade_thaw::Cas>(
+                    from_entry,
+                    selected_entries,
+                    &backup_dir,
+                    flags,
+                ),
             }
-            None => {
-                self.enabled = true;
-                log::info!("cannot run with no 'from' entry");
-                Ok(Task::none())
-            }
+        } else {
+            self.enabled = true;
+            log::info!("cannot run with no 'from' entry");
+            Ok(Task::none())
         }
     }
 
@@ -442,11 +463,13 @@ impl Cascade {
                     .push(self.view_path(&context.state.from)),
             )
             .push(
-                checkbox("trickset", context.state.trickset)
+                checkbox(context.state.trickset)
+                    .label("trickset")
                     .on_toggle_maybe(self.enabled.then_some(Message::SetTricksetFlag)),
             )
             .push(
-                checkbox("scales", context.state.scales)
+                checkbox(context.state.scales)
+                    .label("scales")
                     .on_toggle_maybe(self.enabled.then_some(Message::SetScalesFlag)),
             )
             .push(pick_list(
@@ -587,7 +610,7 @@ impl Cascade {
                     Some(Status::InProgress) => theme::button::entry_warning,
                     Some(Status::Success) => theme::button::entry_success,
                     Some(Status::Error(_)) => theme::button::entry_danger,
-                    None => theme::button::entry_queued,
+                    _ => theme::button::entry_queued,
                 };
                 let button = button(text(name))
                     .style(style)
@@ -622,7 +645,7 @@ impl Cascade {
                     .gap(10)
                     .style(theme::container::bordered)
                     .into(),
-                    None => button.into(),
+                    _ => button.into(),
                 };
 
                 column.push(with_tooltip)
@@ -655,13 +678,14 @@ async fn pick_to_dir() -> Option<PathBuf> {
 fn run<Save, Cas>(
     from: cascade_core::Entry,
     to: impl IntoIterator<Item = cascade_core::Entry>,
-    backup_dir: &PathBuf,
+    backup_dir: &Path,
     flags: cascade_core::Flags,
 ) -> Result<Task<Message>>
 where
     Save: cascade_core::Save + 'static,
     Cas: cascade_core::Cas<Save = Save> + 'static,
 {
+    let backup_dir = backup_dir.to_path_buf();
     let transform = Arc::new(Cas::parse(&Save::read(&mut from.reader()?)?)?.mask(flags));
 
     Ok(Task::batch(to.into_iter().map(|entry| {

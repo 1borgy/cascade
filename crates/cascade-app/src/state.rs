@@ -14,6 +14,7 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Game {
+    Thps3,
     Thps4,
     Thug,
     #[default]
@@ -27,6 +28,7 @@ impl Display for Game {
             f,
             "{}",
             match self {
+                Game::Thps3 => "THPS3",
                 Game::Thps4 => "THPS4",
                 Game::Thug => "THUG",
                 Game::Thug2 => "THUG2",
@@ -37,18 +39,24 @@ impl Display for Game {
 }
 
 impl Game {
-    pub const ALL: &'static [Self] = &[Self::Thps4, Self::Thug, Self::Thug2, Self::Thaw];
+    pub const ALL: &'static [Self] = &[
+        Self::Thps3,
+        Self::Thps4,
+        Self::Thug,
+        Self::Thug2,
+        Self::Thaw,
+    ];
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
     #[serde(default = "default_scale_factor")]
-    pub scale_factor: f64,
+    pub scale_factor: f32,
     #[serde(default)]
     pub game: Game,
 }
 
-fn default_scale_factor() -> f64 {
+fn default_scale_factor() -> f32 {
     1.
 }
 
@@ -116,8 +124,9 @@ impl GameState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GameStates {
+    pub thps3: GameState,
     pub thps4: GameState,
     pub thug: GameState,
     pub thug2: GameState,
@@ -126,6 +135,7 @@ pub struct GameStates {
 
 impl GameStates {
     pub fn load(paths: &Paths) -> Self {
+        let thps3 = GameState::load(&paths.thps3).unwrap_or_default();
         let thps4 = GameState::load(&paths.thps4).unwrap_or_default();
         let thug = GameState::load(&paths.thug).unwrap_or_default();
         let thug2 =
@@ -133,6 +143,7 @@ impl GameStates {
         let thaw = GameState::load(&paths.thaw).unwrap_or_default();
 
         Self {
+            thps3,
             thps4,
             thug,
             thug2,
@@ -141,7 +152,7 @@ impl GameStates {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State {
     pub app: AppState,
     pub game: GameStates,

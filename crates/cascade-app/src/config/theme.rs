@@ -1,6 +1,6 @@
 use std::{fs, io, path::Path};
 
-use iced::{Color, application};
+use iced::{Color, theme};
 use serde::{Deserialize, Serialize};
 
 use crate::{Result, config::frappe};
@@ -86,12 +86,35 @@ fn default_highlight() -> iced::Color {
     *frappe::MAUVE
 }
 
-impl application::DefaultStyle for Theme {
-    fn default_style(&self) -> application::Appearance {
-        application::Appearance {
+impl theme::Base for Theme {
+    fn default(_: theme::Mode) -> Self {
+        Default::default()
+    }
+
+    fn mode(&self) -> theme::Mode {
+        theme::Mode::Dark
+    }
+
+    fn base(&self) -> theme::Style {
+        theme::Style {
             background_color: self.background,
             text_color: self.text,
         }
+    }
+
+    fn palette(&self) -> Option<theme::Palette> {
+        Some(theme::Palette {
+            background: self.background,
+            text: self.text,
+            primary: self.primary,
+            success: self.success,
+            warning: self.warning,
+            danger: self.danger,
+        })
+    }
+
+    fn name(&self) -> &str {
+        "cascade"
     }
 }
 

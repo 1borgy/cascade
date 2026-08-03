@@ -1,7 +1,7 @@
 pub use iced::widget::overlay::menu::Style;
 use iced::{
+    Background, Border, Shadow,
     widget::overlay::menu::{Catalog, StyleFn},
-    Background, Border,
 };
 
 use crate::Theme;
@@ -29,5 +29,6 @@ pub fn primary(theme: &Theme) -> Style {
         },
         selected_text_color: theme.text,
         selected_background: Background::Color(theme.secondary.scale_alpha(0.4)),
+        shadow: Shadow::default(),
     }
 }

@@ -1,5 +1,4 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
-#![feature(error_generic_member_access)]
 
 use std::{io, path::Path};
 
@@ -71,28 +70,31 @@ fn configure_logging(path: impl AsRef<Path>) -> color_eyre::Result<()> {
 
 fn main() -> color_eyre::Result<()> {
     let cascade_dir = paths::cascade_dir().expect("could not determine cascade dir");
-
-    configure_logging(paths::log(&cascade_dir))?;
-
     let paths = Paths::new(&cascade_dir);
+
+    configure_logging(&paths.log)?;
     log::info!("paths: {:?}", paths);
-    let theme = Theme::load(paths::theme(&cascade_dir)).unwrap_or_default();
+
+    let theme = Theme::load(&paths.theme).unwrap_or_default();
     log::info!("loaded theme: {:?}", theme);
     let state = State::load(&paths);
     log::info!("loaded state: {:?}", state);
 
-    iced::application("cascade", Cascade::update, Cascade::view)
-        .theme(Cascade::theme)
-        .window(window::Settings {
-            min_size: Some(Size::new(720., 520.)),
-            icon: window::icon::from_file_data(CASCADE_ICON_BYTES, Some(image::ImageFormat::Ico))
-                .ok(),
-            ..Default::default()
-        })
-        .font(fonts::ICONS_FONT_BYTES)
-        .scale_factor(Cascade::scale_factor)
-        .subscription(Cascade::subscription)
-        .run_with(move || Cascade::new(paths, theme, state))?;
+    iced::application(
+        move || Cascade::new(paths.clone(), theme.clone(), state.clone()),
+        Cascade::update,
+        Cascade::view,
+    )
+    .theme(Cascade::theme)
+    .window(window::Settings {
+        min_size: Some(Size::new(720., 520.)),
+        icon: window::icon::from_file_data(CASCADE_ICON_BYTES, Some(image::ImageFormat::Ico)).ok(),
+        ..Default::default()
+    })
+    .font(fonts::ICONS_FONT_BYTES)
+    .scale_factor(Cascade::scale_factor)
+    .subscription(Cascade::subscription)
+    .run()?;
 
     Ok(())
 }

@@ -2,34 +2,31 @@ use cascade_qb as qb;
 
 use crate::{Save, id};
 
-fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> cascade_core::Result<&qb::Symbol> {
-    Ok(parent
+fn expect_symbol(parent: &qb::Structure, id: qb::Id) -> cascade_core::Result<&qb::Symbol> {
+    parent
         .get(id)
-        .ok_or(cascade_core::Error::SymbolNotFound(id))?)
+        .ok_or(cascade_core::Error::SymbolNotFound(id))
 }
 
 fn expect_symbol_mut(
-    parent: &mut Box<qb::Structure>,
+    parent: &mut qb::Structure,
     id: qb::Id,
 ) -> cascade_core::Result<&mut qb::Symbol> {
-    Ok(parent
+    parent
         .get_mut(id)
-        .ok_or(cascade_core::Error::SymbolNotFound(id))?)
+        .ok_or(cascade_core::Error::SymbolNotFound(id))
 }
 
 // expect symbol and expect structure
-fn expect_structure(
-    parent: &Box<qb::Structure>,
-    id: qb::Id,
-) -> cascade_core::Result<&Box<qb::Structure>> {
-    let symbol = expect_symbol(&parent, id)?;
+fn expect_structure(parent: &qb::Structure, id: qb::Id) -> cascade_core::Result<&qb::Structure> {
+    let symbol = expect_symbol(parent, id)?;
     Ok(symbol.value.try_as_structure()?)
 }
 
 fn expect_structure_mut(
-    parent: &mut Box<qb::Structure>,
+    parent: &mut qb::Structure,
     id: qb::Id,
-) -> cascade_core::Result<&mut Box<qb::Structure>> {
+) -> cascade_core::Result<&mut qb::Structure> {
     let symbol = expect_symbol_mut(parent, id)?;
     Ok(symbol.value.try_as_structure_mut()?)
 }
@@ -90,131 +87,133 @@ impl cascade_core::Cas for Cas {
     }
 
     fn modify(&self, save: &mut Save) -> cascade_core::Result<()> {
-        Ok(self.modify(save)?)
+        self.modify(save)
     }
 
     fn mask(self, flags: cascade_core::Flags) -> Self {
         Cas {
-            summary: flags.summary.then_some(self.summary).unwrap_or_default(),
+            summary: if flags.summary {
+                self.summary
+            } else {
+                Default::default()
+            },
             data: Data {
                 custom_skater: CustomSkater {
                     custom: Custom {
                         info: Info {
-                            trick_mapping: flags
-                                .trickset
-                                .then_some(self.data.custom_skater.custom.info.trick_mapping)
-                                .unwrap_or_default(),
-                            specials: flags
-                                .trickset
-                                .then_some(self.data.custom_skater.custom.info.specials)
-                                .unwrap_or_default(),
+                            trick_mapping: if flags.trickset {
+                                self.data.custom_skater.custom.info.trick_mapping
+                            } else {
+                                Default::default()
+                            },
+                            max_specials: if flags.trickset {
+                                self.data.custom_skater.custom.info.max_specials
+                            } else {
+                                Default::default()
+                            },
+                            specials: if flags.trickset {
+                                self.data.custom_skater.custom.info.specials
+                            } else {
+                                Default::default()
+                            },
                         },
                         appearance: Appearance {
-                            board_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.board_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            feet_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.feet_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            hands_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.hands_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            head_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.head_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            headtop_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.headtop_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            jaw_bone_group: flags
-                                .scales
-                                .then_some(self.data.custom_skater.custom.appearance.jaw_bone_group)
-                                .unwrap_or_default(),
-                            lower_arm_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data
-                                        .custom_skater
-                                        .custom
-                                        .appearance
-                                        .lower_arm_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            lower_leg_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data
-                                        .custom_skater
-                                        .custom
-                                        .appearance
-                                        .lower_leg_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            nose_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.nose_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            object_scaling: flags
-                                .scales
-                                .then_some(self.data.custom_skater.custom.appearance.object_scaling)
-                                .unwrap_or_default(),
-                            stomach_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.stomach_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            torso_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data.custom_skater.custom.appearance.torso_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            upper_arm_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data
-                                        .custom_skater
-                                        .custom
-                                        .appearance
-                                        .upper_arm_bone_group,
-                                )
-                                .unwrap_or_default(),
-                            upper_leg_bone_group: flags
-                                .scales
-                                .then_some(
-                                    self.data
-                                        .custom_skater
-                                        .custom
-                                        .appearance
-                                        .upper_leg_bone_group,
-                                )
-                                .unwrap_or_default(),
+                            board_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.board_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            feet_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.feet_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            hands_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.hands_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            head_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.head_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            headtop_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.headtop_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            jaw_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.jaw_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            lower_arm_bone_group: if flags.scales {
+                                self.data
+                                    .custom_skater
+                                    .custom
+                                    .appearance
+                                    .lower_arm_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            lower_leg_bone_group: if flags.scales {
+                                self.data
+                                    .custom_skater
+                                    .custom
+                                    .appearance
+                                    .lower_leg_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            nose_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.nose_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            object_scaling: if flags.scales {
+                                self.data.custom_skater.custom.appearance.object_scaling
+                            } else {
+                                Default::default()
+                            },
+                            stomach_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.stomach_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            torso_bone_group: if flags.scales {
+                                self.data.custom_skater.custom.appearance.torso_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            upper_arm_bone_group: if flags.scales {
+                                self.data
+                                    .custom_skater
+                                    .custom
+                                    .appearance
+                                    .upper_arm_bone_group
+                            } else {
+                                Default::default()
+                            },
+                            upper_leg_bone_group: if flags.scales {
+                                self.data
+                                    .custom_skater
+                                    .custom
+                                    .appearance
+                                    .upper_leg_bone_group
+                            } else {
+                                Default::default()
+                            },
                             ..Default::default()
                         },
                     },
                 },
                 story_skater: StorySkater {
-                    tricks: flags
-                        .trickset
-                        .then_some(self.data.story_skater.tricks)
-                        .unwrap_or_default(),
+                    tricks: if flags.trickset {
+                        self.data.story_skater.tricks
+                    } else {
+                        Default::default()
+                    },
                 },
             },
         }
@@ -253,7 +252,7 @@ pub struct Summary {
 }
 
 impl Summary {
-    pub fn modify(&self, summary: &mut Box<qb::Structure>) {
+    pub fn modify(&self, summary: &mut qb::Structure) {
         self.total_goals_complete
             .modify(summary, id::TOTAL_GOALS_COMPLETE);
         self.total_goals_possible
@@ -267,10 +266,10 @@ impl Summary {
     }
 }
 
-impl TryFrom<&Box<qb::Structure>> for Summary {
+impl TryFrom<&qb::Structure> for Summary {
     type Error = cascade_core::Error;
 
-    fn try_from(summary: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(summary: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             total_goals_complete: summary.get(id::TOTAL_GOALS_COMPLETE).cloned().into(),
             total_goals_possible: summary.get(id::TOTAL_GOALS_POSSIBLE).cloned().into(),
@@ -290,10 +289,10 @@ pub struct Data {
     pub story_skater: StorySkater,
 }
 
-impl TryFrom<&Box<qb::Structure>> for Data {
+impl TryFrom<&qb::Structure> for Data {
     type Error = cascade_core::Error;
 
-    fn try_from(data: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(data: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             custom_skater: CustomSkater::try_from(expect_structure(data, id::CUSTOM_SKATER)?)?,
             story_skater: StorySkater::try_from(expect_structure(data, id::STORY_SKATER)?)?,
@@ -302,7 +301,7 @@ impl TryFrom<&Box<qb::Structure>> for Data {
 }
 
 impl Data {
-    pub fn modify(&self, data: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
+    pub fn modify(&self, data: &mut qb::Structure) -> cascade_core::Result<()> {
         self.custom_skater
             .modify(expect_structure_mut(data, id::CUSTOM_SKATER)?)?;
 
@@ -319,10 +318,10 @@ pub struct CustomSkater {
     pub custom: Custom,
 }
 
-impl TryFrom<&Box<qb::Structure>> for CustomSkater {
+impl TryFrom<&qb::Structure> for CustomSkater {
     type Error = cascade_core::Error;
 
-    fn try_from(custom_skater: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(custom_skater: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             custom: Custom::try_from(expect_structure(custom_skater, id::CUSTOM)?)?,
         })
@@ -330,7 +329,7 @@ impl TryFrom<&Box<qb::Structure>> for CustomSkater {
 }
 
 impl CustomSkater {
-    pub fn modify(&self, custom_skater: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
+    pub fn modify(&self, custom_skater: &mut qb::Structure) -> cascade_core::Result<()> {
         self.custom
             .modify(expect_structure_mut(custom_skater, id::CUSTOM)?)?;
         Ok(())
@@ -344,10 +343,10 @@ pub struct Custom {
     pub info: Info,
 }
 
-impl TryFrom<&Box<qb::Structure>> for Custom {
+impl TryFrom<&qb::Structure> for Custom {
     type Error = cascade_core::Error;
 
-    fn try_from(custom: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(custom: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             appearance: Appearance::try_from(expect_structure(custom, id::APPEARANCE)?)?,
             info: Info::try_from(expect_structure(custom, id::INFO)?)?,
@@ -356,7 +355,7 @@ impl TryFrom<&Box<qb::Structure>> for Custom {
 }
 
 impl Custom {
-    pub fn modify(&self, custom: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
+    pub fn modify(&self, custom: &mut qb::Structure) -> cascade_core::Result<()> {
         self.appearance
             .modify(expect_structure_mut(custom, id::APPEARANCE)?);
         self.info.modify(expect_structure_mut(custom, id::INFO)?);
@@ -369,15 +368,17 @@ impl Custom {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Info {
     pub trick_mapping: Item,
+    pub max_specials: Item,
     pub specials: Item,
 }
 
-impl TryFrom<&Box<qb::Structure>> for Info {
+impl TryFrom<&qb::Structure> for Info {
     type Error = cascade_core::Error;
 
-    fn try_from(info: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(info: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             trick_mapping: info.get(id::TRICK_MAPPING).cloned().into(),
+            max_specials: info.get(id::MAX_SPECIALS).cloned().into(),
             specials: info.get(id::SPECIALS).cloned().into(),
         })
     }
@@ -386,6 +387,7 @@ impl TryFrom<&Box<qb::Structure>> for Info {
 impl Info {
     pub fn modify(&self, info: &mut qb::Structure) {
         self.trick_mapping.modify(info, id::TRICK_MAPPING);
+        self.max_specials.modify(info, id::MAX_SPECIALS);
         self.specials.modify(info, id::SPECIALS);
     }
 }
@@ -559,10 +561,10 @@ impl Appearance {
     }
 }
 
-impl TryFrom<&Box<qb::Structure>> for Appearance {
+impl TryFrom<&qb::Structure> for Appearance {
     type Error = cascade_core::Error;
 
-    fn try_from(structure: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(structure: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             body_shape: structure.get(id::BODY_SHAPE).cloned().into(),
             body: structure.get(id::BODY).cloned().into(),
@@ -637,10 +639,10 @@ pub struct StorySkater {
     pub tricks: Item,
 }
 
-impl TryFrom<&Box<qb::Structure>> for StorySkater {
+impl TryFrom<&qb::Structure> for StorySkater {
     type Error = cascade_core::Error;
 
-    fn try_from(structure: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(structure: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             tricks: structure.get(id::TRICKS).cloned().into(),
         })
@@ -648,7 +650,7 @@ impl TryFrom<&Box<qb::Structure>> for StorySkater {
 }
 
 impl StorySkater {
-    pub fn modify(&self, story_skater: &mut Box<qb::Structure>) {
+    pub fn modify(&self, story_skater: &mut qb::Structure) {
         self.tricks.modify(story_skater, id::TRICKS);
     }
 }

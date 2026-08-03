@@ -1,4 +1,4 @@
-use iced::{font::Weight, widget::text, Font};
+use iced::{Font, font::Weight, widget::text};
 
 use crate::Element;
 

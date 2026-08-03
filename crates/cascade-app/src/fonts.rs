@@ -1,6 +1,6 @@
 use iced::{
-    font::{Family, Stretch, Style, Weight},
     Font,
+    font::{Family, Stretch, Style, Weight},
 };
 
 pub const ICONS_FONT_BYTES: &[u8] = include_bytes!("../../../assets/icons.ttf");

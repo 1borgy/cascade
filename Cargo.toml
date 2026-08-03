@@ -17,6 +17,7 @@ cascade-qb = { path = "crates/cascade-qb" }
 cascade-save = { path = "crates/cascade-save" }
 cascade-test = { path = "crates/cascade-test" }
 cascade-thaw = { path = "crates/cascade-thaw" }
+cascade-thps3 = { path = "crates/cascade-thps3" }
 cascade-thps4 = { path = "crates/cascade-thps4" }
 cascade-thug = { path = "crates/cascade-thug" }
 cascade-thug2 = { path = "crates/cascade-thug2" }
@@ -30,11 +31,10 @@ count-write = "0.1.0"
 crc = "3.0.1"
 directories = "5.0.1"
 encoding_rs = "0.8.35"
-enum-iterator = "1.4.1"
 env_logger = "0.11.6"
 fern = { version = "0.6.2", features = ["colored"] }
 filetime = "0.2.21"
-image = "0.24.0"
+image = "0.25.0"
 indexmap = { version = "2.7.0", features = ["serde"] }
 log = "0.4.20"
 rand = "0.9.1"

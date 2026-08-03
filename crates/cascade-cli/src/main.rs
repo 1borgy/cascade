@@ -1,3 +1,5 @@
+#[cfg(feature = "dump")]
+use std::io::Write;
 use std::{
     fmt::Debug,
     fs,
@@ -5,7 +7,6 @@ use std::{
     path::PathBuf,
 };
 
-use cascade_core;
 #[cfg(feature = "dump")]
 use cascade_core::Save;
 #[cfg(feature = "dump")]
@@ -30,6 +31,7 @@ struct App {
 #[derive(clap::ValueEnum, Clone, Default, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum Game {
+    Thps3,
     Thps4,
     Thug,
     #[default]
@@ -41,6 +43,16 @@ enum Game {
 enum Command {
     #[cfg(feature = "dump")]
     Dump {
+        #[arg(short, long)]
+        input: PathBuf,
+
+        #[arg(short, long)]
+        output: PathBuf,
+
+        #[arg(short, long)]
+        game: Game,
+    },
+    RoundTrip {
         #[arg(short, long)]
         input: PathBuf,
 
@@ -94,32 +106,6 @@ enum Command {
         #[arg(long)]
         trickset: bool,
     },
-    // Randomize {
-    //     #[arg(long)]
-    //     input_dir: PathBuf,
-    //
-    //     #[arg(long)]
-    //     output_dir: PathBuf,
-    //
-    //     #[arg(long, short)]
-    //     name: String,
-    //
-    //     #[arg(long)]
-    //     female: bool,
-    // },
-    // RandomizeBulk {
-    //     #[arg(long)]
-    //     input_dir: PathBuf,
-    //
-    //     #[arg(long)]
-    //     output_dir: PathBuf,
-    //
-    //     #[arg(long, short)]
-    //     number: usize,
-    //
-    //     #[arg(long)]
-    //     female: bool,
-    // },
     #[cfg(feature = "wad")]
     Hed {
         #[arg(long)]
@@ -141,11 +127,16 @@ enum Command {
         #[arg(long)]
         host: String,
     },
+    Crc {
+        #[arg(long)]
+        value: String,
+    },
 }
 
 #[cfg(feature = "dump")]
 #[derive(serde::Serialize, serde::Deserialize)]
 enum Dump {
+    Thps3(cascade_thps3::dump::Save),
     Neversoft(dump::Save),
     Thaw(cascade_thaw::dump::Save),
 }
@@ -165,12 +156,11 @@ fn main() -> color_eyre::Result<()> {
             output,
             game,
         } => {
-            use std::io::Write;
-
             let entry = cascade_core::Entry::create(&input)?;
             let lut = Lut {
                 checksum: lut::Checksum::load()?,
                 compress: match game {
+                    Game::Thps3 => cascade_thps3::lut::load_compress()?,
                     Game::Thps4 => cascade_thps4::lut::load_compress()?,
                     Game::Thug => cascade_thug::lut::load_compress()?,
                     Game::Thug2 => cascade_thug2::lut::load_compress()?,
@@ -178,11 +168,14 @@ fn main() -> color_eyre::Result<()> {
                 },
             };
             let dump = match game {
-                Game::Thug | Game::Thug2 | Game::Thps4 => {
+                Game::Thps3 => {
+                    let save = cascade_thps3::Save::read(&mut entry.reader()?)?;
+                    Dump::Thps3(cascade_thps3::dump::Save::new(&save, &lut))
+                }
+                Game::Thps4 | Game::Thug | Game::Thug2 => {
                     let save = cascade_save::Save::read(&mut entry.reader()?)?;
                     Dump::Neversoft(dump::Save::new(&save, &lut))
                 }
-                // THAW supports dumping either rethawed saves or neversoft saves
                 Game::Thaw => {
                     let save = cascade_thaw::Save::read(&mut entry.reader()?)?;
                     Dump::Thaw(cascade_thaw::dump::Save::new(&save, &lut))
@@ -192,7 +185,29 @@ fn main() -> color_eyre::Result<()> {
             let mut file = fs::File::create(output).unwrap();
             let contents =
                 ron::ser::to_string_pretty(&dump, ron::ser::PrettyConfig::new()).unwrap();
-            file.write(contents.as_bytes()).unwrap();
+
+            file.write_all(contents.as_bytes()).unwrap();
+
+            Ok(())
+        }
+        Command::RoundTrip {
+            input,
+            output,
+            game,
+        } => {
+            match game {
+                Game::Thps3 => {
+                    round_trip::<cascade_thps3::Save, cascade_thps3::Cas>(&input, &output)?
+                }
+                Game::Thps4 => {
+                    round_trip::<cascade_thps4::Save, cascade_thps4::Cas>(&input, &output)?
+                }
+                Game::Thug => round_trip::<cascade_thug::Save, cascade_thug::Cas>(&input, &output)?,
+                Game::Thug2 => {
+                    round_trip::<cascade_thug2::Save, cascade_thug2::Cas>(&input, &output)?
+                }
+                Game::Thaw => round_trip::<cascade_thaw::Save, cascade_thaw::Cas>(&input, &output)?,
+            };
 
             Ok(())
         }
@@ -214,6 +229,9 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
+                Game::Thps3 => {
+                    modify::<cascade_thps3::Save, cascade_thps3::Cas>(&from, &to, flags)?
+                }
                 Game::Thps4 => {
                     modify::<cascade_thps4::Save, cascade_thps4::Cas>(&from, &to, flags)?
                 }
@@ -246,6 +264,11 @@ fn main() -> color_eyre::Result<()> {
             }
 
             match game {
+                Game::Thps3 => modify_bulk::<cascade_thps3::Save, cascade_thps3::Cas>(
+                    &from,
+                    cascade_thps3::find_entries(&to_dir),
+                    flags,
+                )?,
                 Game::Thps4 => modify_bulk::<cascade_thps4::Save, cascade_thps4::Cas>(
                     &from,
                     cascade_thps4::find_entries(&to_dir),
@@ -323,6 +346,11 @@ fn main() -> color_eyre::Result<()> {
 
             Ok(())
         }
+        Command::Crc { value } => {
+            let checksum = cascade_crc::checksum(&value.as_bytes().to_vec());
+            println!("{:#08x}", checksum);
+            Ok(())
+        },
     }
 }
 
@@ -335,11 +363,11 @@ where
     Save: cascade_core::Save,
     Cas: cascade_core::Cas<Save = Save>,
 {
-    let from_file = fs::File::open(&from)?;
+    let from_file = fs::File::open(from)?;
     let mut from_reader = BufReader::new(from_file);
     let from_save = Save::read(&mut from_reader)?;
 
-    let to_file = fs::File::open(&to)?;
+    let to_file = fs::File::open(to)?;
     let mut to_reader = BufReader::new(to_file);
     let mut to_save = Save::read(&mut to_reader)?;
 
@@ -347,7 +375,7 @@ where
     let transform = from_parsed.mask(flags);
     transform.modify(&mut to_save)?;
 
-    let to_file = fs::File::create(&to)?;
+    let to_file = fs::File::create(to)?;
     let mut writer = BufWriter::new(to_file);
     to_save.write(&mut writer)?;
 
@@ -382,7 +410,7 @@ where
         Ok(())
     }
 
-    let from_file = fs::File::open(&from)?;
+    let from_file = fs::File::open(from)?;
     let mut from_reader = BufReader::new(from_file);
     let from_save = Save::read(&mut from_reader)?;
     let from_parsed = Cas::parse(&from_save)?;
@@ -399,6 +427,24 @@ where
             }
         }
     }
+
+    Ok(())
+}
+
+fn round_trip<Save, Cas>(from: &PathBuf, to: &PathBuf) -> Result<(), cascade_core::Error>
+where
+    Save: cascade_core::Save,
+    Cas: cascade_core::Cas<Save = Save>,
+{
+    let from_file = fs::File::open(from)?;
+    let mut reader = BufReader::new(from_file);
+    let mut save = Save::read(&mut reader)?;
+    let parsed = Cas::parse(&save)?;
+    parsed.modify(&mut save)?;
+
+    let to_file = fs::File::create(to)?;
+    let mut writer = BufWriter::new(to_file);
+    save.write(&mut writer)?;
 
     Ok(())
 }

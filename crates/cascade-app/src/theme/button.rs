@@ -1,6 +1,6 @@
 use iced::{
-    widget::button::{Catalog, Status, Style, StyleFn},
     Background, Border, Color,
+    widget::button::{Catalog, Status, Style, StyleFn},
 };
 
 use crate::Theme;
@@ -91,7 +91,6 @@ fn entry_button(bg: Color, fg: Color, accent: Color, status: Status) -> Style {
                 radius: 4.0.into(),
                 width: 1.0,
                 color: accent,
-                ..Default::default()
             },
             ..Default::default()
         },
@@ -102,7 +101,6 @@ fn entry_button(bg: Color, fg: Color, accent: Color, status: Status) -> Style {
                 radius: 4.0.into(),
                 width: 1.0,
                 color: accent,
-                ..Default::default()
             },
             ..Default::default()
         },

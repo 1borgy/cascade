@@ -41,7 +41,7 @@ impl Entry {
         let dir = PathBuf::from(dir.as_ref());
         Self {
             path: dir.join(&self.filename),
-            dir: PathBuf::from(dir),
+            dir,
             filename: self.filename.clone(),
             metadata: self.metadata.clone(),
         }
@@ -78,7 +78,7 @@ impl Entry {
                 filepath,
                 original_mod_time
             );
-            filetime::set_file_mtime(&filepath, original_mod_time)?;
+            filetime::set_file_mtime(filepath, original_mod_time)?;
         }
 
         Ok(())

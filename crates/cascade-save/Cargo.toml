@@ -9,7 +9,6 @@ cascade-qb = { workspace = true }
 
 byteorder = { workspace = true }
 count-write = { workspace = true }
-log = { workspace = true }
 thiserror = { workspace = true }
 
 serde = { workspace = true, optional = true }

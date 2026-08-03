@@ -10,7 +10,7 @@ pub async fn write_ron(obj: impl Serialize, to: impl AsRef<Path>) -> Result<usiz
 
     let contents = ron::ser::to_string(&obj)?;
 
-    let bytes = file.write(&contents.as_bytes()).await?;
+    let bytes = file.write(contents.as_bytes()).await?;
 
     log::info!("wrote {} bytes to {:?}", bytes, to.as_ref());
 

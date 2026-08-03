@@ -115,12 +115,7 @@ Cascade would not exist without the following people, so shoutout to them:
 
 # `🛠️ development`<a id="development"></a>
 
-Building cascade requires nightly rust.
-
-```bash
-rustup toolchain install nightly
-rustup override set nightly
-```
+**TODO**
 
 To cross-compile for windows:
 

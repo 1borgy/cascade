@@ -33,9 +33,9 @@ impl TryFrom<u32> for Magic {
         }
     }
 }
-impl Into<u32> for Magic {
-    fn into(self) -> u32 {
-        match self {
+impl From<Magic> for u32 {
+    fn from(val: Magic) -> Self {
+        match val {
             Magic::Data => MAGIC_DATA,
             Magic::Summary => MAGIC_SUMMARY,
         }
@@ -47,14 +47,14 @@ impl Into<u32> for Magic {
 pub struct Chunk {
     pub magic: Magic,
     pub size: u32,
-    pub structure: Box<qb::Structure>,
+    pub structure: qb::Structure,
 }
 
 impl Chunk {
     pub fn read(reader: &mut impl Read) -> cascade_core::Result<Self> {
         let magic = reader.read_u32::<LittleEndian>()?.try_into()?;
         let size = reader.read_u32::<LittleEndian>()?;
-        let structure = Box::new(qb::Structure::read(reader)?);
+        let structure = qb::Structure::read(reader)?;
         // TODO: use size?
         // let mut data = vec![0; size as usize];
         // reader.read_exact(&mut data)?;

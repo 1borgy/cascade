@@ -2,34 +2,31 @@ use cascade_qb as qb;
 
 use crate::{Save, id};
 
-fn expect_symbol(parent: &Box<qb::Structure>, id: qb::Id) -> cascade_core::Result<&qb::Symbol> {
-    Ok(parent
+fn expect_symbol(parent: &qb::Structure, id: qb::Id) -> cascade_core::Result<&qb::Symbol> {
+    parent
         .get(id)
-        .ok_or(cascade_core::Error::SymbolNotFound(id))?)
+        .ok_or(cascade_core::Error::SymbolNotFound(id))
 }
 
 fn expect_symbol_mut(
-    parent: &mut Box<qb::Structure>,
+    parent: &mut qb::Structure,
     id: qb::Id,
 ) -> cascade_core::Result<&mut qb::Symbol> {
-    Ok(parent
+    parent
         .get_mut(id)
-        .ok_or(cascade_core::Error::SymbolNotFound(id))?)
+        .ok_or(cascade_core::Error::SymbolNotFound(id))
 }
 
 // expect symbol and expect structure
-fn expect_structure(
-    parent: &Box<qb::Structure>,
-    id: qb::Id,
-) -> cascade_core::Result<&Box<qb::Structure>> {
-    let symbol = expect_symbol(&parent, id)?;
+fn expect_structure(parent: &qb::Structure, id: qb::Id) -> cascade_core::Result<&qb::Structure> {
+    let symbol = expect_symbol(parent, id)?;
     Ok(symbol.value.try_as_structure()?)
 }
 
 fn expect_structure_mut(
-    parent: &mut Box<qb::Structure>,
+    parent: &mut qb::Structure,
     id: qb::Id,
-) -> cascade_core::Result<&mut Box<qb::Structure>> {
+) -> cascade_core::Result<&mut qb::Structure> {
     let symbol = expect_symbol_mut(parent, id)?;
     Ok(symbol.value.try_as_structure_mut()?)
 }
@@ -95,64 +92,86 @@ impl cascade_core::Cas for Cas {
 
     fn mask(self, flags: cascade_core::Flags) -> Self {
         Cas {
-            summary: flags.summary.then_some(self.summary).unwrap_or_default(),
+            summary: if flags.summary {
+                self.summary
+            } else {
+                Default::default()
+            },
             data: Data {
                 custom: Custom {
                     info: Info {
-                        trick_mapping: flags
-                            .trickset
-                            .then_some(self.data.custom.info.trick_mapping)
-                            .unwrap_or_default(),
-                        specials: flags
-                            .trickset
-                            .then_some(self.data.custom.info.specials)
-                            .unwrap_or_default(),
+                        trick_mapping: if flags.trickset {
+                            self.data.custom.info.trick_mapping
+                        } else {
+                            Default::default()
+                        },
+                        max_specials: if flags.trickset {
+                            self.data.custom.info.max_specials
+                        } else {
+                            Default::default()
+                        },
+                        specials: if flags.trickset {
+                            self.data.custom.info.specials
+                        } else {
+                            Default::default()
+                        },
                     },
                     appearance: Appearance {
-                        board_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.board_bone_group)
-                            .unwrap_or_default(),
-                        feet_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.feet_bone_group)
-                            .unwrap_or_default(),
-                        hands_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.hands_bone_group)
-                            .unwrap_or_default(),
-                        head_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.head_bone_group)
-                            .unwrap_or_default(),
-                        lower_arm_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.lower_arm_bone_group)
-                            .unwrap_or_default(),
-                        lower_leg_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.lower_leg_bone_group)
-                            .unwrap_or_default(),
-                        object_scaling: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.object_scaling)
-                            .unwrap_or_default(),
-                        stomach_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.stomach_bone_group)
-                            .unwrap_or_default(),
-                        torso_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.torso_bone_group)
-                            .unwrap_or_default(),
-                        upper_arm_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.upper_arm_bone_group)
-                            .unwrap_or_default(),
-                        upper_leg_bone_group: flags
-                            .scales
-                            .then_some(self.data.custom.appearance.upper_leg_bone_group)
-                            .unwrap_or_default(),
+                        board_bone_group: if flags.scales {
+                            self.data.custom.appearance.board_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        feet_bone_group: if flags.scales {
+                            self.data.custom.appearance.feet_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        hands_bone_group: if flags.scales {
+                            self.data.custom.appearance.hands_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        head_bone_group: if flags.scales {
+                            self.data.custom.appearance.head_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        lower_arm_bone_group: if flags.scales {
+                            self.data.custom.appearance.lower_arm_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        lower_leg_bone_group: if flags.scales {
+                            self.data.custom.appearance.lower_leg_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        object_scaling: if flags.scales {
+                            self.data.custom.appearance.object_scaling
+                        } else {
+                            Default::default()
+                        },
+                        stomach_bone_group: if flags.scales {
+                            self.data.custom.appearance.stomach_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        torso_bone_group: if flags.scales {
+                            self.data.custom.appearance.torso_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        upper_arm_bone_group: if flags.scales {
+                            self.data.custom.appearance.upper_arm_bone_group
+                        } else {
+                            Default::default()
+                        },
+                        upper_leg_bone_group: if flags.scales {
+                            self.data.custom.appearance.upper_leg_bone_group
+                        } else {
+                            Default::default()
+                        },
                     },
                 },
             },
@@ -186,15 +205,15 @@ pub struct Summary {
 }
 
 impl Summary {
-    pub fn modify(&self, summary: &mut Box<qb::Structure>) {
+    pub fn modify(&self, summary: &mut qb::Structure) {
         self.filename.modify(summary, id::FILENAME);
     }
 }
 
-impl TryFrom<&Box<qb::Structure>> for Summary {
+impl TryFrom<&qb::Structure> for Summary {
     type Error = cascade_core::Error;
 
-    fn try_from(summary: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(summary: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             filename: summary.get(id::FILENAME).cloned().into(),
         })
@@ -207,10 +226,10 @@ pub struct Data {
     pub custom: Custom,
 }
 
-impl TryFrom<&Box<qb::Structure>> for Data {
+impl TryFrom<&qb::Structure> for Data {
     type Error = cascade_core::Error;
 
-    fn try_from(data: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(data: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             custom: Custom::try_from(expect_structure(data, id::CUSTOM)?)?,
         })
@@ -218,7 +237,7 @@ impl TryFrom<&Box<qb::Structure>> for Data {
 }
 
 impl Data {
-    pub fn modify(&self, data: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
+    pub fn modify(&self, data: &mut qb::Structure) -> cascade_core::Result<()> {
         self.custom
             .modify(expect_structure_mut(data, id::CUSTOM)?)?;
 
@@ -233,10 +252,10 @@ pub struct Custom {
     pub info: Info,
 }
 
-impl TryFrom<&Box<qb::Structure>> for Custom {
+impl TryFrom<&qb::Structure> for Custom {
     type Error = cascade_core::Error;
 
-    fn try_from(custom: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(custom: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             appearance: Appearance::try_from(expect_structure(custom, id::APPEARANCE)?)?,
             info: Info::try_from(expect_structure(custom, id::INFO)?)?,
@@ -245,7 +264,7 @@ impl TryFrom<&Box<qb::Structure>> for Custom {
 }
 
 impl Custom {
-    pub fn modify(&self, custom: &mut Box<qb::Structure>) -> cascade_core::Result<()> {
+    pub fn modify(&self, custom: &mut qb::Structure) -> cascade_core::Result<()> {
         self.appearance
             .modify(expect_structure_mut(custom, id::APPEARANCE)?);
         self.info.modify(expect_structure_mut(custom, id::INFO)?);
@@ -258,15 +277,17 @@ impl Custom {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Info {
     pub trick_mapping: Item,
+    pub max_specials: Item,
     pub specials: Item,
 }
 
-impl TryFrom<&Box<qb::Structure>> for Info {
+impl TryFrom<&qb::Structure> for Info {
     type Error = cascade_core::Error;
 
-    fn try_from(info: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(info: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             trick_mapping: info.get(id::TRICK_MAPPING).cloned().into(),
+            max_specials: info.get(id::MAX_SPECIALS).cloned().into(),
             specials: info.get(id::SPECIALS).cloned().into(),
         })
     }
@@ -275,6 +296,7 @@ impl TryFrom<&Box<qb::Structure>> for Info {
 impl Info {
     pub fn modify(&self, info: &mut qb::Structure) {
         self.trick_mapping.modify(info, id::TRICK_MAPPING);
+        self.max_specials.modify(info, id::MAX_SPECIALS);
         self.specials.modify(info, id::SPECIALS);
     }
 }
@@ -319,10 +341,10 @@ impl Appearance {
     }
 }
 
-impl TryFrom<&Box<qb::Structure>> for Appearance {
+impl TryFrom<&qb::Structure> for Appearance {
     type Error = cascade_core::Error;
 
-    fn try_from(structure: &Box<qb::Structure>) -> cascade_core::Result<Self> {
+    fn try_from(structure: &qb::Structure) -> cascade_core::Result<Self> {
         Ok(Self {
             board_bone_group: structure.get(id::BOARD_BONE_GROUP).cloned().into(),
             feet_bone_group: structure.get(id::FEET_BONE_GROUP).cloned().into(),

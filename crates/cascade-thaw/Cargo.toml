@@ -5,7 +5,7 @@ edition = { workspace = true }
 
 [dependencies]
 cascade-core = { workspace = true }
-cascade-dump = { workspace = true }
+cascade-dump = { workspace = true, optional = true }
 cascade-lut = { workspace = true, optional = true }
 cascade-save = { workspace = true }
 cascade-qb = { workspace = true }
@@ -22,5 +22,5 @@ cascade-test = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"]}
 
 [features]
-serde = ["dep:serde"]
-lut = ["dep:cascade-lut"]
+serde = ["dep:serde", "cascade-qb/serde"]
+dump = ["dep:cascade-dump", "dep:cascade-lut"]

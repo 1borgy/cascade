@@ -17,6 +17,7 @@ pub const APPEARANCE: qb::Id = qb::Id::Checksum(1431076207);
 pub const INFO: qb::Id = qb::Id::Checksum(880201384);
 
 pub const TRICK_MAPPING: qb::Id = qb::Id::Compress8(61);
+pub const MAX_SPECIALS: qb::Id = qb::Id::Compress8(63);
 pub const SPECIALS: qb::Id = qb::Id::Compress8(64);
 
 pub const BODY_SHAPE: qb::Id = qb::Id::Checksum(2166785263);

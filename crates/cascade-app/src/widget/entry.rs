@@ -1,9 +1,9 @@
 use iced::{
-    widget::{button, checkbox, text},
     Length,
+    widget::{button, checkbox, text},
 };
 
-use crate::{theme, Element, Row};
+use crate::{Element, Row, theme};
 
 pub fn selectable<'a, Message>(
     name: impl ToString,
@@ -13,7 +13,8 @@ pub fn selectable<'a, Message>(
 where
     Message: 'a + Clone,
 {
-    let checkbox = checkbox("", selected)
+    let checkbox = checkbox(selected)
+        .label("")
         .style(match selected {
             true => theme::checkbox::entry_selected,
             false => theme::checkbox::entry_unselected,

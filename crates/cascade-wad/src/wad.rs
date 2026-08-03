@@ -13,10 +13,10 @@ pub fn extract(hed: hed::File, wad: &mut fs::File, output_dir: impl AsRef<Path>)
     for entry in hed.entries {
         match extract_entry(&entry, wad, output_dir) {
             Ok(_) => {
-                log::info!("extracted entry {}", &entry.path);
+                log::info!("extracted entry {}", entry.path);
             }
             Err(err) => {
-                log::warn!("error extracting entry {}: {}", &entry.path, err);
+                log::warn!("error extracting entry {}: {}", entry.path, err);
             }
         }
     }
@@ -30,7 +30,7 @@ fn extract_entry(
     output_dir: impl AsRef<Path>,
 ) -> Result<()> {
     let output_dir = output_dir.as_ref();
-    let entry_path = output_dir.join(&entry.path.strip_prefix("\\").unwrap_or(&entry.path));
+    let entry_path = output_dir.join(entry.path.strip_prefix("\\").unwrap_or(&entry.path));
     if let Some(parent) = entry_path.parent() {
         fs::create_dir_all(parent)?;
     }

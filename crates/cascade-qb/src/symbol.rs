@@ -47,7 +47,7 @@ impl Symbol {
 
         // Error if both checksum bits are set
         (!(use_lookup_8 && use_lookup_16))
-            .then(|| ())
+            .then_some(())
             .ok_or(Error::BothChecksumBits(type_byte))?;
 
         let kind = Kind::try_from(type_byte_masked)?;

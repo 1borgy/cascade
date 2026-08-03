@@ -81,16 +81,16 @@ impl Header {
 pub struct Save {
     pub header: Header,
 
-    pub summary: Box<qb::Structure>,
-    pub data: Box<qb::Structure>,
+    pub summary: qb::Structure,
+    pub data: qb::Structure,
 }
 
 impl Save {
     pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         Ok(Self {
             header: Header::read(reader)?,
-            summary: Box::new(qb::Structure::read(reader)?),
-            data: Box::new(qb::Structure::read(reader)?),
+            summary: qb::Structure::read(reader)?,
+            data: qb::Structure::read(reader)?,
         })
     }
 
@@ -111,7 +111,7 @@ impl Save {
         let padding = calculate_padding(num_bytes_written);
         let num_padding_bytes = padding.filesize.saturating_sub(num_bytes_written);
 
-        count_writer.write(&vec![padding.pad_byte; num_padding_bytes])?;
+        count_writer.write_all(&vec![padding.pad_byte; num_padding_bytes])?;
 
         Ok(())
     }

@@ -1,14 +1,14 @@
 mod cas;
 mod id;
-#[cfg(feature = "lut")]
+#[cfg(feature = "dump")]
 pub mod lut;
 mod save;
 
 pub use cas::Cas;
 pub use save::Save;
 
-pub const FILTER_NAME: &'static str = "THUG CAS";
-pub const FILTER_EXTENSION: &'static str = "SKA";
+pub const FILTER_NAME: &str = "THUG CAS";
+pub const FILTER_EXTENSION: &str = "SKA";
 
 pub fn find_entries(dir: &std::path::PathBuf) -> Vec<cascade_core::Entry> {
     cascade_core::find_entries(dir, FILTER_EXTENSION)

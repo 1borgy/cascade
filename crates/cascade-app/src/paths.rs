@@ -1,117 +1,71 @@
 use std::{
-    env, fs, io,
+    env, fs,
     path::{Path, PathBuf},
-    result,
 };
 
-const CONFIG_FILENAME: &'static str = "cascade.toml";
-const THEME_FILENAME: &'static str = "theme.toml";
-const LOG_FILENAME: &'static str = "cascade.log";
-
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum Error {
-    #[error("an io error occurred: {0}")]
-    Io(io::ErrorKind),
-
-    #[error("no home directory was found")]
-    NoHomeDir,
-
-    #[error("could not determine cwd")]
-    Cwd,
-}
-
-pub type Result<T, E = Error> = result::Result<T, E>;
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value.kind())
-    }
-}
-
-fn local_appdata_dir() -> Result<PathBuf> {
-    // %localappdata%/
-    if let Some(user_dirs) = directories::BaseDirs::new() {
-        Ok(user_dirs.data_local_dir().into())
-    } else {
-        Err(Error::NoHomeDir)
-    }
-}
-
-pub fn detect_thugpro_dir() -> Option<PathBuf> {
-    // %localappdata%/THUG Pro/Save/
-    if let Some(path) = local_appdata_dir()
-        .map(|dir| dir.join("THUG Pro").join("Save"))
+fn cwd() -> Option<PathBuf> {
+    env::current_exe()
         .ok()
-    {
-        if path.is_dir() { Some(path) } else { None }
+        .and_then(|exe| exe.parent().map(PathBuf::from))
+}
+
+fn local_appdata_dir() -> Option<PathBuf> {
+    // %localappdata%/
+    directories::BaseDirs::new().map(|user_dirs| user_dirs.data_local_dir().into())
+}
+
+fn default_cascade_dir() -> Option<PathBuf> {
+    // %localappdata%/cascade/
+    if let Some(path) = local_appdata_dir().map(|dir| dir.join("cascade")) {
+        if !path.is_dir()
+            && let Err(err) = fs::create_dir_all(&path)
+        {
+            log::warn!("could not create cascade directory: {}", err)
+        }
+        Some(path)
     } else {
         None
     }
 }
 
-fn cwd() -> Result<PathBuf> {
-    let exe = env::current_exe()?;
-    Ok(exe.parent().ok_or(Error::Cwd)?.into())
+pub fn cascade_dir() -> Option<PathBuf> {
+    default_cascade_dir().or_else(cwd)
 }
 
-fn portable_dir() -> Option<PathBuf> {
-    let cwd = cwd().ok()?;
-    let config_path = cwd.join(CONFIG_FILENAME);
-
-    match config_path.is_file() {
-        true => Some(cwd.to_path_buf()),
-        false => None,
-    }
+pub fn detect_thugpro_dir() -> Option<PathBuf> {
+    // %localappdata%/THUG Pro/Save/
+    local_appdata_dir()
+        .map(|dir| dir.join("THUG Pro").join("Save"))
+        .filter(|path| path.is_dir())
 }
 
-fn default_cascade_dir() -> Result<PathBuf> {
-    // %localappdata%/cascade/
-    let path = local_appdata_dir().map(|dir| dir.join("cascade"))?;
-
-    if !path.is_dir() {
-        fs::create_dir_all(&path)?;
-    }
-
-    Ok(path)
-}
-
-pub fn cascade_dir() -> Result<PathBuf> {
-    match portable_dir() {
-        Some(dir) => Ok(dir),
-        None => default_cascade_dir().or_else(|_| cwd()),
-    }
-}
-pub fn theme(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/theme.toml
-    cascade_dir.as_ref().join(THEME_FILENAME)
-}
-
-pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/cascade.log
-    cascade_dir.as_ref().join(LOG_FILENAME)
-}
-
-// TODO: replace all above
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Paths {
     pub app: PathBuf,
     pub backup: PathBuf,
 
+    pub thps3: PathBuf,
     pub thps4: PathBuf,
     pub thug: PathBuf,
     pub thug2: PathBuf,
     pub thaw: PathBuf,
+
+    pub theme: PathBuf,
+    pub log: PathBuf,
 }
 
 impl Paths {
-    pub fn new(data_dir: &PathBuf) -> Self {
+    pub fn new(data_dir: &Path) -> Self {
         Self {
             app: data_dir.join("app.ron"),
             backup: data_dir.join("backup"),
+            thps3: data_dir.join("thps3.ron"),
             thps4: data_dir.join("thps4.ron"),
             thug: data_dir.join("thug.ron"),
             thug2: data_dir.join("thug2.ron"),
             thaw: data_dir.join("thaw.ron"),
+            theme: data_dir.join("theme.toml"),
+            log: data_dir.join("cascade.log"),
         }
     }
 }

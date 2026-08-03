@@ -1,7 +1,6 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use cascade_save as save;
 
 use crate::chunk::{self, Chunk};
 
@@ -74,7 +73,7 @@ impl Rethawed {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Save {
-    Thaw(save::Save),
+    Thaw(cascade_save::Save),
     Rethawed(Rethawed),
 }
 
@@ -86,7 +85,7 @@ impl cascade_core::Save for Save {
         match magic {
             // "RTHW"
             0x57485452 => Ok(Save::Rethawed(Rethawed::read(reader)?)),
-            _ => Ok(Save::Thaw(save::Save::read(reader)?)),
+            _ => Ok(Save::Thaw(cascade_save::Save::read(reader)?)),
         }
     }
 
@@ -96,6 +95,7 @@ impl cascade_core::Save for Save {
                 let padding = cascade_save::Padding::calculate_dynamic(|filesize| {
                     // Neversoft THAW saves observed to pad to multiple different sizes
                     // e.g. 85K file will be padded to 98K, 135K file will be padded to 180K
+                    // Implement more robust stop alg if more filesizes observed in the future
                     if filesize < SAVE_FILESIZE_1 {
                         SAVE_FILESIZE_1
                     } else if filesize < SAVE_FILESIZE_2 {

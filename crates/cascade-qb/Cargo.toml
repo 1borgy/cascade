@@ -5,7 +5,6 @@ edition = { workspace = true }
 
 [dependencies]
 byteorder = { workspace = true }
-count-write = { workspace = true }
 serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 

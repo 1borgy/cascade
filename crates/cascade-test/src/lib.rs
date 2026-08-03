@@ -16,7 +16,7 @@ pub fn entries_dir(subdir: impl AsRef<Path>) -> PathBuf {
         .join(subdir)
 }
 
-fn diff_bytes(input_bytes: &Vec<u8>, output_bytes: &Vec<u8>) -> anyhow::Result<()> {
+fn diff_bytes(input_bytes: &[u8], output_bytes: &[u8]) -> anyhow::Result<()> {
     if input_bytes.len() == output_bytes.len() {
         let mut num_diff_bytes = 0;
 
@@ -69,14 +69,14 @@ where
 {
     let mut errors = Vec::new();
 
-    for result in vec![round_trip_entry::<Save, Cas>(entry)] {
+    for result in [round_trip_entry::<Save, Cas>(entry)] {
         match result {
             Ok(_) => {}
             Err(err) => errors.push(err),
         }
     }
 
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         let failures = errors
             .into_iter()
             .map(|e| format!("  {}", e))
@@ -113,13 +113,13 @@ where
         }
     }
 
-    if errors.len() > 0 {
-        let message = errors
+    assert!(
+        errors.is_empty(),
+        "\n{}\n",
+        errors
             .into_iter()
             .map(|e| format!("{}", e))
             .collect::<Vec<_>>()
-            .join("\n\n");
-
-        assert!(false, "\n{}\n", message)
-    }
+            .join("\n\n")
+    )
 }

@@ -1,6 +1,6 @@
 use iced::{
-    widget::slider::{Catalog, Handle, HandleShape, Rail, Status, Style, StyleFn},
     Background, Border,
+    widget::slider::{Catalog, Handle, HandleShape, Rail, Status, Style, StyleFn},
 };
 
 use crate::Theme;
@@ -19,7 +19,7 @@ impl Catalog for Theme {
 
 pub fn primary(theme: &Theme, status: Status) -> Style {
     match status {
-        Status::Active | Status::Hovered { .. } | Status::Dragged { .. } => Style {
+        Status::Active | Status::Hovered | Status::Dragged => Style {
             rail: Rail {
                 backgrounds: (
                     Background::Color(theme.primary),
@@ -33,9 +33,9 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
                 },
             },
             handle: Handle {
-                shape: HandleShape::Circle { radius: 8.0.into() },
+                shape: HandleShape::Circle { radius: 8.0_f32 },
                 background: Background::Color(theme.background),
-                border_width: 8.0.into(),
+                border_width: 8.0_f32,
                 border_color: theme.primary,
             },
         },

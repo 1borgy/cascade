@@ -1,9 +1,9 @@
 use iced::{
+    Background, Border, Color, Shadow,
     widget::{
         container,
-        scrollable::{Catalog, Rail, Scroller, Status, Style, StyleFn},
+        scrollable::{AutoScroll, Catalog, Rail, Scroller, Status, Style, StyleFn},
     },
-    Background, Border, Color,
 };
 
 use crate::Theme;
@@ -25,7 +25,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
         background: Some(Background::Color(theme.secondary.scale_alpha(0.5))),
         border: Border::default(),
         scroller: Scroller {
-            color: theme.text.scale_alpha(0.5),
+            background: Background::Color(theme.text.scale_alpha(0.5)),
             border: Border {
                 radius: 8.0.into(),
                 width: 0.0,
@@ -35,13 +35,19 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
     };
 
     match status {
-        Status::Active | Status::Hovered { .. } | Status::Dragged { .. } => Style {
+        Status::Active { .. } | Status::Hovered { .. } | Status::Dragged { .. } => Style {
             container: container::Style {
                 ..Default::default()
             },
             vertical_rail: rail,
             horizontal_rail: rail,
             gap: None,
+            auto_scroll: AutoScroll {
+                background: Background::Color(theme.text.scale_alpha(0.5)),
+                border: Border::default(),
+                shadow: Shadow::default(),
+                icon: theme.secondary.scale_alpha(0.5),
+            },
         },
     }
 }

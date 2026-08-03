@@ -1,8 +1,8 @@
-use std::cell::LazyCell;
+use std::sync::LazyLock;
 
 use crc::{Algorithm, Crc};
 
-const CRC: LazyCell<Crc<u32>> = LazyCell::new(|| {
+static CRC: LazyLock<Crc<u32>> = LazyLock::new(|| {
     Crc::<u32>::new(&Algorithm {
         width: 32,
         poly: 0x04c11db7,

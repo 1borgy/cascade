@@ -17,5 +17,5 @@ cascade-test = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"]}
 
 [features]
-serde = ["dep:serde", "cascade-qb/serde", "cascade-save/serde"]
-lut = ["dep:cascade-lut"]
+serde = ["dep:serde", "cascade-qb/serde"]
+dump = ["dep:cascade-lut"]
