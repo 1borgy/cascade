@@ -1,20 +1,48 @@
 [package]
 name = "cascade-cli"
 version = "0.0.1"
-edition = "2024"
+edition = { workspace = true }
 
 [dependencies]
-cascade-dump = { workspace = true }
-cascade-lut = { workspace = true }
+cascade-core = { workspace = true }
+cascade-crc = { workspace = true }
+cascade-dump = { workspace = true, optional = true }
+cascade-lut = { workspace = true, optional = true }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
-cascade-thugpro = { workspace = true, features = ["serde"] }
+cascade-thaw = { workspace = true }
+cascade-thps3 = { workspace = true }
+cascade-thps4 = { workspace = true }
+cascade-thug = { workspace = true }
+cascade-thug2 = { workspace = true }
+cascade-wad = { workspace = true, optional = true }
 
 clap = { workspace = true }
 color-eyre = { workspace = true }
 encoding_rs = { workspace = true }
-rand = { workspace = true }
-ron = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+ron = { workspace = true, optional = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
+suppaftp = { workspace = true, optional = true }
 thiserror = { workspace = true }
+
+[features]
+default = []
+dump = [
+  "dep:cascade-lut",
+  "dep:cascade-dump",
+  "dep:ron",
+  "cascade-thps3/dump",
+  "cascade-thps3/serde",
+  "cascade-thps4/dump",
+  "cascade-thps4/serde",
+  "cascade-thug/dump",
+  "cascade-thug/serde",
+  "cascade-thug2/dump",
+  "cascade-thug2/serde",
+  "cascade-thaw/dump",
+  "cascade-thaw/serde"
+]
+ftp = ["dep:suppaftp"]
+wad = ["dep:cascade-wad"]

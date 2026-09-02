@@ -5,9 +5,6 @@ use encoding_rs::WINDOWS_1252;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct Kind();
-
-#[derive(Serialize, Deserialize)]
 pub enum Id {
     None,
     Checksum(u32),
@@ -64,14 +61,14 @@ impl Value {
             qb::Value::ZeroInt => Value::ZeroInt,
             qb::Value::ZeroFloat => Value::ZeroFloat,
             qb::Value::String(v) => {
-                let (name, _, _) = WINDOWS_1252.decode(&v);
+                let (name, _, _) = WINDOWS_1252.decode(v);
                 Value::String(name.to_string())
             }
             qb::Value::Pair(x, y) => Value::Pair(*x, *y),
             qb::Value::Vector(x, y, z) => Value::Vector(*x, *y, *z),
-            qb::Value::Structure(v) => Value::Structure(Box::new(Structure::new(&v, &lut))),
+            qb::Value::Structure(v) => Value::Structure(Box::new(Structure::new(v, lut))),
             qb::Value::Array(_, v) => {
-                Value::Array(v.iter().map(|symbol| Value::new(&symbol, lut)).collect())
+                Value::Array(v.iter().map(|symbol| Value::new(symbol, lut)).collect())
             }
             qb::Value::Name(v) => Value::Name(lut.checksum.lookup(*v).cloned()),
         }
@@ -82,7 +79,7 @@ impl Value {
 pub struct Symbol {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    pub id: Id,
+    pub id: qb::Id,
     pub value: Value,
 }
 
@@ -95,7 +92,7 @@ impl Symbol {
                 qb::Id::Compress8(v) => lut.compress.lookup8(v).cloned(),
                 qb::Id::Compress16(v) => lut.compress.lookup16(v).cloned(),
             },
-            id: symbol.id.into(),
+            id: symbol.id,
             value: Value::new(&symbol.value, lut),
         }
     }
@@ -129,8 +126,8 @@ impl Save {
     pub fn new(file: &save::Save, lut: &Lut) -> Self {
         Self {
             header: file.header.clone(),
-            summary: Structure::new(&*file.summary, lut),
-            data: Structure::new(&*file.data, lut),
+            summary: Structure::new(&file.summary, lut),
+            data: Structure::new(&file.data, lut),
         }
     }
 }

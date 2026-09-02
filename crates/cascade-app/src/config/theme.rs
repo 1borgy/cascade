@@ -1,9 +1,9 @@
 use std::{fs, io, path::Path};
 
-use iced::{application, Color};
+use iced::{Color, theme};
 use serde::{Deserialize, Serialize};
 
-use crate::config::{frappe, Error};
+use crate::{Result, config::frappe};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Theme {
@@ -41,7 +41,7 @@ impl Default for Theme {
 }
 
 impl Theme {
-    pub fn load(path: impl AsRef<Path>) -> Result<Self, Error> {
+    pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let file = fs::File::open(&path)?;
 
         log::info!("reading theme from {:?}", path.as_ref());
@@ -86,12 +86,35 @@ fn default_highlight() -> iced::Color {
     *frappe::MAUVE
 }
 
-impl application::DefaultStyle for Theme {
-    fn default_style(&self) -> application::Appearance {
-        application::Appearance {
+impl theme::Base for Theme {
+    fn default(_: theme::Mode) -> Self {
+        Default::default()
+    }
+
+    fn mode(&self) -> theme::Mode {
+        theme::Mode::Dark
+    }
+
+    fn base(&self) -> theme::Style {
+        theme::Style {
             background_color: self.background,
             text_color: self.text,
         }
+    }
+
+    fn palette(&self) -> Option<theme::Palette> {
+        Some(theme::Palette {
+            background: self.background,
+            text: self.text,
+            primary: self.primary,
+            success: self.success,
+            warning: self.warning,
+            danger: self.danger,
+        })
+    }
+
+    fn name(&self) -> &str {
+        "cascade"
     }
 }
 

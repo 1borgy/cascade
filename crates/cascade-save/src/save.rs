@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use cascade_crc as crc;
@@ -7,8 +7,30 @@ use count_write::CountWrite;
 
 use crate::Result;
 
-const SAVE_FILE_SIZE: usize = 90112;
 const PADDING_BYTE: u8 = 0x69;
+
+pub struct Padding {
+    pub filesize: usize,
+    pub pad_byte: u8,
+}
+
+impl Padding {
+    pub fn calculate_static(filesize: usize) -> impl Fn(usize) -> Padding {
+        move |_| Padding {
+            filesize,
+            pad_byte: PADDING_BYTE,
+        }
+    }
+
+    pub fn calculate_dynamic(
+        calculate_filesize: impl Fn(usize) -> usize,
+    ) -> impl Fn(usize) -> Padding {
+        move |filesize| Padding {
+            filesize: calculate_filesize(filesize),
+            pad_byte: PADDING_BYTE,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -55,26 +77,30 @@ impl Header {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Save {
     pub header: Header,
 
-    pub summary: Box<qb::Structure>,
-    pub data: Box<qb::Structure>,
+    pub summary: qb::Structure,
+    pub data: qb::Structure,
 }
 
 impl Save {
-    pub fn read(reader: &mut impl Read) -> Result<Self> {
+    pub fn read(reader: &mut (impl Read + Seek)) -> Result<Self> {
         Ok(Self {
             header: Header::read(reader)?,
-            summary: Box::new(qb::Structure::read(reader)?),
-            data: Box::new(qb::Structure::read(reader)?),
+            summary: qb::Structure::read(reader)?,
+            data: qb::Structure::read(reader)?,
         })
     }
 
-    pub fn write<W: Write>(&self, writer: &mut W) -> Result<()> {
+    pub fn write(
+        &self,
+        writer: &mut (impl Write + Seek),
+        calculate_padding: impl Fn(usize) -> Padding,
+    ) -> Result<()> {
         let mut count_writer = CountWrite::from(writer);
 
-        // TODO fix this
         let header = self.calculate_header()?;
         header.write(&mut count_writer)?;
 
@@ -82,22 +108,16 @@ impl Save {
         self.data.write(&mut count_writer)?;
 
         let num_bytes_written = count_writer.count() as usize;
+        let padding = calculate_padding(num_bytes_written);
+        let num_padding_bytes = padding.filesize.saturating_sub(num_bytes_written);
 
-        let num_padding_bytes = SAVE_FILE_SIZE.saturating_sub(num_bytes_written);
-
-        // log::info!(
-        //     "wrote {} bytes, padding with {} bytes to fill {} bytes",
-        //     num_bytes_written,
-        //     num_padding_bytes,
-        //     SAVE_FILE_SIZE
-        // );
-
-        count_writer.write(&vec![PADDING_BYTE; num_padding_bytes])?;
+        count_writer.write_all(&vec![padding.pad_byte; num_padding_bytes])?;
 
         Ok(())
     }
 
     fn calculate_header(&self) -> Result<Header> {
+        // TODO use seek instead of serializing save twice
         let mut summary_bytes = self.summary.raw_bytes()?;
         let mut data_bytes = self.data.raw_bytes()?;
 

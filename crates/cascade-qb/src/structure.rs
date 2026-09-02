@@ -14,7 +14,7 @@ impl Structure {
         Self(symbols)
     }
 
-    pub fn read(reader: &mut impl Read) -> Result<Structure, Error> {
+    pub fn read(reader: &mut impl Read) -> Result<Self, Error> {
         let mut symbols = vec![];
 
         while {
@@ -57,15 +57,19 @@ impl Structure {
     }
 
     pub fn get(&self, id: Id) -> Option<&Symbol> {
-        self.0.iter().filter(|symbol| symbol.id == id).next()
+        self.0.iter().find(|symbol| symbol.id == id)
     }
 
     pub fn get_mut(&mut self, id: Id) -> Option<&mut Symbol> {
-        self.0.iter_mut().filter(|symbol| symbol.id == id).next()
+        self.0.iter_mut().find(|symbol| symbol.id == id)
     }
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn insert(&mut self, symbol: Symbol) -> Option<Symbol> {

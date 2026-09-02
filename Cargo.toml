@@ -2,15 +2,28 @@
 members = ["crates/*"]
 resolver = "2"
 
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+repository = "https://github.com/1borgy/cascade"
+license = "MIT"
+
 [workspace.dependencies]
-cascade-backend = { path = "crates/cascade-backend" }
+cascade-core = { path = "crates/cascade-core" }
 cascade-crc = { path = "crates/cascade-crc" }
 cascade-dump = { path = "crates/cascade-dump" }
 cascade-lut = { path = "crates/cascade-lut" }
 cascade-qb = { path = "crates/cascade-qb" }
 cascade-save = { path = "crates/cascade-save" }
-cascade-thugpro = { path = "crates/cascade-thugpro" }
+cascade-test = { path = "crates/cascade-test" }
+cascade-thaw = { path = "crates/cascade-thaw" }
+cascade-thps3 = { path = "crates/cascade-thps3" }
+cascade-thps4 = { path = "crates/cascade-thps4" }
+cascade-thug = { path = "crates/cascade-thug" }
+cascade-thug2 = { path = "crates/cascade-thug2" }
+cascade-wad = { path = "crates/cascade-wad" }
 
+anyhow = "1.0"
 byteorder = "1.4.3"
 clap = { version = "4.5.16", features = ["derive"] }
 color-eyre = "0.6"
@@ -18,18 +31,18 @@ count-write = "0.1.0"
 crc = "3.0.1"
 directories = "5.0.1"
 encoding_rs = "0.8.35"
-enum-iterator = "1.4.1"
+env_logger = "0.11.6"
 fern = { version = "0.6.2", features = ["colored"] }
 filetime = "0.2.21"
-hex-literal = "0.4.1"
-image = "0.24.0"
-indexmap = "2.7.0"
+image = "0.25.0"
+indexmap = { version = "2.7.0", features = ["serde"] }
 log = "0.4.20"
 rand = "0.9.1"
 rfd = "0.12.1"
 ron = "0.8.1"
 serde = { version = "1.0.190", features = ["rc", "derive"] }
 serde_json = "1.0.140"
+suppaftp = "^6"
 thiserror = "1.0.50"
 time = { version = "0.3.30", features = ["local-offset", "formatting"] }
 tokio = { version = "1.40.0", features = ["fs", "io-util"] }

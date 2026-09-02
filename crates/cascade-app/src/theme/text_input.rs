@@ -1,0 +1,68 @@
+use iced::{
+    Background, Border, Color,
+    widget::text_input::{Catalog, Status, Style, StyleFn},
+};
+
+use crate::Theme;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(primary)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
+    }
+}
+
+pub fn primary(theme: &Theme, status: Status) -> Style {
+    let active = Style {
+        background: Background::Color(theme.secondary.scale_alpha(0.4)),
+        border: Border {
+            radius: 4.0.into(),
+            width: 1.0,
+            color: theme.secondary,
+        },
+        icon: theme.primary,
+        placeholder: theme.text.scale_alpha(0.5),
+        value: theme.text,
+        selection: theme.primary.scale_alpha(0.4),
+    };
+
+    match status {
+        Status::Active | Status::Hovered | Status::Focused { .. } => active,
+        Status::Disabled => Style {
+            background: Background::Color(theme.secondary.scale_alpha(0.4)),
+            placeholder: Color {
+                a: 0.4,
+                ..theme.secondary
+            },
+            border: Border {
+                radius: 4.0.into(),
+                width: 0.0,
+                color: Color::TRANSPARENT,
+                // XXX Not currently displayed in application.
+            },
+            ..active
+        },
+    }
+}
+
+#[expect(dead_code)]
+pub fn error(theme: &Theme, status: Status) -> Style {
+    let primary = primary(theme, status);
+
+    match status {
+        Status::Active | Status::Hovered | Status::Focused { .. } => Style {
+            border: Border {
+                radius: 4.0.into(),
+                width: 1.0,
+                color: theme.danger,
+            },
+            ..primary
+        },
+        Status::Disabled => primary,
+    }
+}

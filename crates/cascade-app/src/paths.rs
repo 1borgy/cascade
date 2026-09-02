@@ -1,123 +1,71 @@
 use std::{
-    env, fs, io,
+    env, fs,
     path::{Path, PathBuf},
-    result,
 };
 
-const CONFIG_FILENAME: &'static str = "cascade.toml";
-const SELECTIONS_FILENAME: &'static str = "selections.ron";
-const THEME_FILENAME: &'static str = "theme.toml";
-const LOG_FILENAME: &'static str = "cascade.log";
-
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum Error {
-    #[error("an io error occurred: {0}")]
-    Io(io::ErrorKind),
-
-    #[error("no home directory was found")]
-    NoHomeDir,
-
-    #[error("no thug pro directory was found")]
-    NoThugProDir,
-
-    #[error("no thug pro saves directory was found")]
-    NoThugProSavesDir,
-
-    #[error("could not determine cwd")]
-    Cwd,
+fn cwd() -> Option<PathBuf> {
+    env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(PathBuf::from))
 }
 
-pub type Result<T, E = Error> = result::Result<T, E>;
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value.kind())
-    }
-}
-
-fn local_appdata_dir() -> Result<PathBuf> {
+fn local_appdata_dir() -> Option<PathBuf> {
     // %localappdata%/
-    if let Some(user_dirs) = directories::BaseDirs::new() {
-        Ok(user_dirs.data_local_dir().into())
-    } else {
-        Err(Error::NoHomeDir)
-    }
+    directories::BaseDirs::new().map(|user_dirs| user_dirs.data_local_dir().into())
 }
 
-pub fn default_thugpro_dir() -> Result<PathBuf> {
-    // %localappdata%/THUG Pro/
-    let path = local_appdata_dir().map(|dir| dir.join("THUG Pro"))?;
-
-    match path.is_dir() {
-        true => Ok(path),
-        false => Err(Error::NoThugProDir),
-    }
-}
-
-pub fn default_saves_dir() -> Result<PathBuf> {
-    // %localappdata%/THUG Pro/Save/
-    let path = default_thugpro_dir().map(|dir| dir.join("Save"))?;
-
-    match path.is_dir() {
-        true => Ok(path),
-        false => Err(Error::NoThugProSavesDir),
-    }
-}
-
-fn cwd() -> Result<PathBuf> {
-    let exe = env::current_exe()?;
-    Ok(exe.parent().ok_or(Error::Cwd)?.into())
-}
-
-fn portable_dir() -> Option<PathBuf> {
-    let cwd = cwd().ok()?;
-    let config_path = cwd.join(CONFIG_FILENAME);
-
-    match config_path.is_file() {
-        true => Some(cwd.to_path_buf()),
-        false => None,
-    }
-}
-
-fn default_cascade_dir() -> Result<PathBuf> {
+fn default_cascade_dir() -> Option<PathBuf> {
     // %localappdata%/cascade/
-    let path = local_appdata_dir().map(|dir| dir.join("cascade"))?;
-
-    if !path.is_dir() {
-        fs::create_dir_all(&path)?;
-    }
-
-    Ok(path)
-}
-
-pub fn cascade_dir() -> Result<PathBuf> {
-    match portable_dir() {
-        Some(dir) => Ok(dir),
-        None => default_cascade_dir().or_else(|_| cwd()),
+    if let Some(path) = local_appdata_dir().map(|dir| dir.join("cascade")) {
+        if !path.is_dir()
+            && let Err(err) = fs::create_dir_all(&path)
+        {
+            log::warn!("could not create cascade directory: {}", err)
+        }
+        Some(path)
+    } else {
+        None
     }
 }
 
-pub fn backup_dir(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/backup/
-    cascade_dir.as_ref().join("backup")
+pub fn cascade_dir() -> Option<PathBuf> {
+    default_cascade_dir().or_else(cwd)
 }
 
-pub fn config(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/cascade.toml
-    cascade_dir.as_ref().join(CONFIG_FILENAME)
+pub fn detect_thugpro_dir() -> Option<PathBuf> {
+    // %localappdata%/THUG Pro/Save/
+    local_appdata_dir()
+        .map(|dir| dir.join("THUG Pro").join("Save"))
+        .filter(|path| path.is_dir())
 }
 
-pub fn selections(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/selections.ron
-    cascade_dir.as_ref().join(SELECTIONS_FILENAME)
+#[derive(Debug, Clone)]
+pub struct Paths {
+    pub app: PathBuf,
+    pub backup: PathBuf,
+
+    pub thps3: PathBuf,
+    pub thps4: PathBuf,
+    pub thug: PathBuf,
+    pub thug2: PathBuf,
+    pub thaw: PathBuf,
+
+    pub theme: PathBuf,
+    pub log: PathBuf,
 }
 
-pub fn theme(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/theme.toml
-    cascade_dir.as_ref().join(THEME_FILENAME)
-}
-
-pub fn log(cascade_dir: impl AsRef<Path>) -> PathBuf {
-    // %localappdata%/cascade/cascade.log
-    cascade_dir.as_ref().join(LOG_FILENAME)
+impl Paths {
+    pub fn new(data_dir: &Path) -> Self {
+        Self {
+            app: data_dir.join("app.ron"),
+            backup: data_dir.join("backup"),
+            thps3: data_dir.join("thps3.ron"),
+            thps4: data_dir.join("thps4.ron"),
+            thug: data_dir.join("thug.ron"),
+            thug2: data_dir.join("thug2.ron"),
+            thaw: data_dir.join("thaw.ron"),
+            theme: data_dir.join("theme.toml"),
+            log: data_dir.join("cascade.log"),
+        }
+    }
 }

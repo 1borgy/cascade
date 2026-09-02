@@ -1,6 +1,6 @@
 use iced::{
-    widget::checkbox::{Catalog, Status, Style, StyleFn},
     Background, Border, Color,
+    widget::checkbox::{Catalog, Status, Style, StyleFn},
 };
 
 use crate::Theme;

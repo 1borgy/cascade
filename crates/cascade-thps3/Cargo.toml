@@ -1,0 +1,22 @@
+[package]
+name = "cascade-thps3"
+version = "0.0.1"
+edition = { workspace = true }
+
+[dependencies]
+cascade-core = { workspace = true }
+cascade-dump = { workspace = true, optional = true }
+cascade-lut = { workspace = true, optional = true }
+cascade-qb = { workspace = true }
+
+encoding_rs = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+cascade-test = { workspace = true }
+
+tokio = { workspace = true, features = ["rt", "macros"]}
+
+[features]
+serde = ["dep:serde", "cascade-qb/serde"]
+dump = ["dep:cascade-dump", "dep:cascade-lut"]

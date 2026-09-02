@@ -93,7 +93,7 @@ impl Value {
                 return Err(Error::NotImplemented(format!(
                     "deserializing symbol type {:?}",
                     kind
-                )))
+                )));
             }
         })
     }
@@ -134,7 +134,7 @@ impl Value {
         Ok(())
     }
 
-    pub fn try_as_structure(self) -> Result<Box<Structure>, Error> {
+    pub fn try_as_structure(&self) -> Result<&Structure, Error> {
         match self {
             Value::Structure(value) => Ok(value),
             value => Err(Error::ExpectedValueType(
@@ -144,7 +144,7 @@ impl Value {
         }
     }
 
-    pub fn try_as_structure_mut(&mut self) -> Result<&mut Box<Structure>, Error> {
+    pub fn try_as_structure_mut(&mut self) -> Result<&mut Structure, Error> {
         match self {
             Value::Structure(value) => Ok(value),
             value => Err(Error::ExpectedValueType(

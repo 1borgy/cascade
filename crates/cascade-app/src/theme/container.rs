@@ -1,6 +1,6 @@
 use iced::{
-    widget::container::{transparent, Catalog, Style, StyleFn},
     Background, Border,
+    widget::container::{Catalog, Style, StyleFn, transparent},
 };
 
 use crate::Theme;
@@ -31,7 +31,6 @@ pub fn monobox(theme: &Theme) -> Style {
             color: theme.secondary,
             width: 1.0,
             radius: 4.0.into(),
-            ..Default::default()
         },
         ..Default::default()
     }
@@ -44,7 +43,6 @@ pub fn bordered(theme: &Theme) -> Style {
             color: theme.highlight,
             width: 1.5,
             radius: 4.0.into(),
-            ..Default::default()
         },
         ..Default::default()
     }

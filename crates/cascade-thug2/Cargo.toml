@@ -1,0 +1,26 @@
+[package]
+name = "cascade-thug2"
+version = "0.0.1"
+edition = { workspace = true }
+
+[dependencies]
+cascade-core = { workspace = true }
+cascade-lut = { workspace = true, optional = true }
+cascade-qb = { workspace = true }
+cascade-save = { workspace = true }
+
+byteorder = { workspace = true }
+count-write = { workspace = true }
+filetime = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+cascade-test = { workspace = true }
+
+tokio = { workspace = true, features = ["rt", "macros"]}
+
+[features]
+serde = ["dep:serde", "cascade-qb/serde"]
+dump = ["dep:cascade-lut"]

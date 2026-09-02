@@ -1,3 +1,4 @@
+use core::str::FromStr;
 use std::{collections::HashMap, result, str::Utf8Error};
 
 use cascade_qb as qb;
@@ -29,11 +30,7 @@ pub struct Checksum(pub HashMap<u32, String>);
 impl Checksum {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let as_str = std::str::from_utf8(bytes)?;
-        Ok(Self::from_str(as_str)?)
-    }
-
-    pub fn from_str(s: &str) -> Result<Self> {
-        Ok(ron::from_str(s)?)
+        Self::from_str(as_str)
     }
 
     pub fn lookup(&self, value: u32) -> Option<&String> {
@@ -45,20 +42,24 @@ impl Checksum {
     }
 }
 
+impl FromStr for Checksum {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(ron::from_str(s)?)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Compress {
-    compress8: Vec<String>,
-    compress16: Vec<String>,
+    pub compress8: Vec<String>,
+    pub compress16: Vec<String>,
 }
 
 impl Compress {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let as_str = std::str::from_utf8(bytes)?;
-        Ok(Self::from_str(as_str)?)
-    }
-
-    pub fn from_str(s: &str) -> Result<Self> {
-        Ok(ron::from_str(s)?)
+        Self::from_str(as_str)
     }
 
     pub fn lookup8(&self, value: u8) -> Option<&String> {
@@ -67,6 +68,14 @@ impl Compress {
 
     pub fn lookup16(&self, value: u16) -> Option<&String> {
         self.compress16.get(value as usize)
+    }
+}
+
+impl FromStr for Compress {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(ron::from_str(s)?)
     }
 }
 

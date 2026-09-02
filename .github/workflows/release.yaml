@@ -5,7 +5,6 @@ on:
   push:
     tags: [ "*.*.*" ]
 
-
 jobs:
   windows:
     if: startsWith(github.ref, 'refs/tags/')
@@ -17,6 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: verify tag is on main
+        run: |
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
+            echo "'${{ github.ref_name }}' does not point to a commit on main. releases may only be cut from main."
+            exit 1
+          fi
+
       - name: get current project version
         run: |
           # Not working
@@ -26,24 +33,18 @@ jobs:
           #
           # This is disgusting - need to assume nothing else in Cargo.toml has
           # "version = x.x.x" from start of line
-          $project_version = cat .\cascade_app\Cargo.toml | grep -oE '^version = \"?[0-9]+\.[0-9]+\.[0-9]+\"' | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"
+          $project_version = cat .\crates\cascade-app\Cargo.toml | grep -oE '^version = \"?[0-9]+\.[0-9]+\.[0-9]+\"' | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"
           "project_version=$project_version" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: install nightly rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: nightly
 
       - name: install required rustup components
         run: |
-          rustup component add rustfmt --toolchain nightly
-          rustup target add x86_64-pc-windows-gnu
+          rustup target add x86_64-pc-windows-msvc
 
       - name: cargo build
-        run: cargo build --target x86_64-pc-windows-gnu --release
+        run: cargo build --target x86_64-pc-windows-msvc --release
 
       - name: create release
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: true
-          files: ./target/x86_64-pc-windows-gnu/release/cascade.exe
+          files: ./target/x86_64-pc-windows-msvc/release/cascade.exe

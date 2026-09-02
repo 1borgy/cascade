@@ -1,22 +1,24 @@
 [package]
 name = "cascade-app"
-version = "0.3.0"
-edition = "2021"
+version = "0.4.0"
+edition = { workspace = true }
 
 [[bin]]
 name = "cascade"
 path = "src/main.rs"
 
 [dependencies]
+cascade-core = { workspace = true, features = ["serde"] }
 cascade-qb = { workspace = true }
 cascade-save = { workspace = true }
-cascade-thugpro = { workspace = true }
+cascade-thps3 = { workspace = true }
+cascade-thps4 = { workspace = true }
+cascade-thug = { workspace = true }
+cascade-thug2 = { workspace = true }
+cascade-thaw = { workspace = true }
 
-clap = { workspace = true }
 directories = { workspace = true }
-enum-iterator = { workspace = true }
 fern = { workspace = true }
-hex-literal = { workspace = true }
 image = { workspace = true }
 indexmap = { workspace = true }
 log = { workspace = true }
@@ -27,9 +29,10 @@ thiserror = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }
+color-eyre = { workspace = true }
 
 [dependencies.iced]
-version = "0.13.1"
+version = "0.14.0"
 default-features = false
 features = ["tokio", "image", "debug", "wgpu"]
 
