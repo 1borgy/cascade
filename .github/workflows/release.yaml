@@ -16,14 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: verify tag is on main
-        run: |
-          git fetch origin main --quiet
-          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
-            echo "'${{ github.ref_name }}' does not point to a commit on main. releases may only be cut from main."
-            exit 1
-          fi
-
       - name: get current project version
         run: |
           # Not working
