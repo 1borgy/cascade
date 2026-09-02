@@ -25,10 +25,10 @@ Download and run `cascade.exe` from the [latest GitHub release](https://github.c
 
 ## `⚡️ usage`<a id="usage"></a>
 
-Cascade's UI contains three columns: "from", "to", and "queue".
-
 > [!TIP]
 > Use `ctrl+-` and `ctrl+=` to resize the UI.
+
+Cascade's UI contains three columns: "from", "to", and "queue".
 
 ### `from`
 
