@@ -1,7 +1,7 @@
 <div align="center">
   <img src=".github/assets/banner.gif" width=65%>
   <div>
-    <em>A bulk save modifier for THUG Pro.</em>
+    <em>A bulk save modifier for THPS3-THAW.</em>
   </div>
 </div>
 
@@ -21,51 +21,40 @@
 
 ## `⏬ installation`<a id="installation"></a>
 
-Download `cascade.exe` from [here](https://github.com/1borgy/cascade/releases/latest).
+Download and run `cascade.exe` from the [latest GitHub release](https://github.com/1borgy/cascade/releases/latest).
 
 ## `⚡️ usage`<a id="usage"></a>
 
-> [!WARNING]
-> I highly recommend making a manual backup of your saves! Though `cascade` has been rigorously
-> tested against community CAS packs, the possibility of save corruption still exists.
+Cascade's UI contains three columns: "from", "to", and "queue".
 
-Upon opening Cascade, you will be greeted with three columns.
+> [!TIP]
+> Use `ctrl+-` and `ctrl+=` to resize the UI.
 
 ### `from`
 
-The "from" column allows you to select the save to copy from. You may choose to copy trickset,
-scales, or both.
+The "from" column allows you to select the save to copy from, which components to copy (scales, trickset), and which game to target.
 
 ### `to`
 
 The "to" column allows you to select which saves to copy to.
 
-Cascade will automatically detect your save folder at `%localappdata%/THUG Pro/Save`.
-If you have it installed elsewhere, or want to copy saves to a different folder, you will need to
-select the desired folder manually.
+Cascade will automatically detect THUG Pro saves at `%localappdata%/THUG Pro/Save`. For other games
+or install locations, you may need to select the desired folder manually.
 
 ### `queue`
 
-The "queue" column shows which save files are currently queued to be modified, as well as their
-most recent modification status. Upon pressing the start (▶️) button, all saves in the queue will
+The "queue" column shows which save files will be modified, as well as their most recent
+modification status. Upon pressing the start (▶️) button, all saves in the queue will
 be backed up then modified in-place.
 
 If modification of a save is successful, it will turn green. If modification of a save results in
-an error, it will turn red. If you encounter an error while modifying saves, please 
+an error, it will turn red. If you encounter an error while modifying saves, please
 [contact me](#contact).
-
-> [!TIP]
-> Use `ctrl+-` and `ctrl+=` to resize the UI.
-
-> [!TIP]
-> Create an empty file named `cascade.toml` in the same directory as the executable to use a
-> portable install. Otherwise, cascade will store files at `%localappdata%/cascade`.
 
 ## `💾 backups`<a id="backups"></a>
 
-If you want to revert a cascade run, backups are stored at `%localappdata%/cascade/backup`.
-Simply pick which backup you want to use and drag its contents into your saves folder.
-Each entry in this folder is labeled with the date and time of modification.
+Every time CAS files are modified, Cascade stores datetime-labeled backups at `%localappdata%/cascade/backup`.
+To restore a backup, drag its contents into your saves folder.
 
 ## `📣 contact`<a id="contact"></a>
 
@@ -133,10 +122,3 @@ To run the UI:
 
 ```bash
 cargo run -p cascade-app
-```
-
-To create random CASes:
-
-```bash
-cargo run -p cascade-cli randomize-bulk --input-dir .local/saves --output-dir .local/rand --female -n 10
-```
